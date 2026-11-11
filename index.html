@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Type A₂ affine alcove walk interactive visualizer" />
+  <title>Alcove Studio · A₂</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="masthead">
+      <div class="brand"><div class="brand-symbol"><span>●</span></div><div class="brand-copy"><div class="brand-main"><span class="brand-title">Alcove Studio</span><span class="badge-a2">TYPE A₂</span></div><div class="brand-tagline">一步一步，走过仿射 Weyl 群。</div></div></div>
+      <div class="header-actions">
+        <button class="plain-action" id="help-btn" title="查看说明">ⓘ <span>使用说明</span></button>
+        <button class="plain-action" id="prompt-btn" title="复制项目开发提示词">▤ <span>复用提示词</span></button>
+        <button class="primary-action" id="export-btn">⇩ <span>导出 SVG</span></button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="canvas-shell" aria-label="A₂ 仿射 Coxeter 复形交互绘图区域">
+        <svg id="alcove-canvas" aria-label="A₂ alcove 三角格和行走路径" role="img" tabindex="0"></svg>
+        <div class="canvas-heading"><div class="overline">A₂ · AFFINE COXETER COMPLEX</div><h1>从 A₀ 出发，点击相邻 alcove</h1><p>沿着三色墙，画出你的路线。</p></div>
+        <div class="wall-legend"><span><i class="s0"></i>s₀</span><span><i class="s1"></i>s₁</span><span><i class="s2"></i>s₂</span></div>
+        <div class="draw-state"><span class="status-pip"></span><span id="drawing-status">打点模式</span></div>
+        <div class="float-toolbar" role="toolbar" aria-label="绘图工具">
+          <button class="tool-button selected" data-tool="draw" title="打点模式 (D)">✎</button>
+          <button class="tool-button" data-tool="pan" title="拖动画布 (H)">✋</button>
+          <div class="tool-split"></div>
+          <button class="tool-button" id="zoom-out" title="缩小">−</button>
+          <span id="zoom-label" class="zoom-label">100%</span>
+          <button class="tool-button" id="zoom-in" title="放大">＋</button>
+          <div class="tool-split"></div>
+          <button class="tool-text" id="recenter-btn" title="回到 fundamental alcove">⌂ 回到 A₀</button>
+          <button class="tool-text" id="fit-btn" title="完整显示当前路线">⛶ 适合路径</button>
+        </div>
+        <div class="canvas-footer"><span id="canvas-footnote">已就绪 · 点击浅绿色的相邻 alcove 继续</span><span>Space 拖动 · 滚轮缩放</span></div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="sidebar-header"><div class="overline">PATH BUILDER</div><div class="sidebar-title-row"><h2>你的 Alcove walk</h2><span class="live-dot"><i></i>自由绘制</span></div></div>
+        <div class="stats"><div><strong id="step-count">0</strong><span>行走步数</span></div><div><strong id="length-count">0</strong><span>最短距离</span></div><div><strong id="unique-count">1</strong><span>不同 alcove</span></div></div>
+
+        <section class="side-section"><div class="side-label-row"><h3>当前反射字</h3><span class="metric-tag" id="reduced-badge">约化路线</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">终点 A₀</span><button class="link-action" id="copy-word">▣ 复制反射字</button></div><div class="triple-buttons"><button id="undo-btn">↶ 撤销</button><button id="redo-btn">↷ 重做</button><button id="clear-btn">◴ 清空</button></div><p class="hint">允许回走；回走会保留为新的一步。</p></section>
+        <section class="side-section"><h3>输入反射字</h3><form id="word-form" class="word-form"><input type="text" id="word-input" placeholder="例如 0 2 1 2 或 s₀ s₂ s₁ s₂" aria-label="输入 s0 s1 s2 反射字" spellcheck="false" /><button type="submit" class="dark-button">绘制</button></form><div class="side-label-row examples-label"><h3>示例路线</h3><span>预设反射字</span></div><div class="example-row"><select id="example-select" aria-label="选择示例路线"><option value="">选择一条示例路线</option><option value="0,2,1,2">Example 2.19 (a): s₀s₂s₁s₂</option><option value="1,0,2">示例 · s₁s₀s₂</option><option value="0,1,0">示例 · s₀s₁s₀</option><option value="0,2,0">示例 · s₀s₂s₀</option><option value="1,2,1,0">示例 · s₁s₂s₁s₀</option><option value="2,0,1,2">示例 · s₂s₀s₁s₂</option></select><button id="load-example">载入</button></div></section>
+        <section class="side-section"><div class="side-label-row"><h3>逐步记录</h3><span>起点 → 终点</span></div><ol id="walk-log" class="walk-log"></ol></section>
+        <section class="side-section settings"><h3>绘制选项</h3><label class="switch-line"><span>吸附到 alcove 中心</span><input type="checkbox" id="snap-checkbox" checked /></label><p class="hint">取消吸附后，点会放在实际点击的位置，仍按 alcove 的共边关系判定是否合法。</p><button id="export-json" class="wide-outline">⇩ 导出路径 JSON</button></section>
+      </aside>
+    </main>
+    <footer class="site-footer"><span>万格亲而画，为思考留迹。</span><span>Type A₂ · Coxeter complex · 可本地运行</span></footer>
+  </div>
+  <div class="toast" role="status" id="toast" aria-live="polite"></div>
+  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
