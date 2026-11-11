@@ -1,5 +1,7 @@
 # Alcove Studio · A₂
 
+**[在线使用 / Open the live app](https://jifangyoudiannao.github.io/alcove-walk-visualizer/)**
+
 An interactive alcove walk visualizer for the affine Coxeter complex of type \(\widetilde{A}_2\). Built with **TypeScript + native SVG + CSS**, without a runtime UI dependency.
 
 > **Provenance:** This is a source-code **reconstruction** of the earlier interactive site, not a byte-for-byte extraction of its original Sites deployment. Example 2.19(a) `s₀s₂s₁s₂` is included; the other five preset paths are demonstrations and are *not* claimed to be the paper's examples.
