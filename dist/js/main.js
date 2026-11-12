@@ -4,6 +4,8 @@ import { PROJECT_PROMPT } from './ui/prompt.js';
 import { FoldExplorer, actionLabel } from './ui/foldExplorer.js';
 import { galleryDistance } from './math/folded.js';
 import { RamExplorer } from './ui/ramExplorer.js';
+import { LPExplorer } from './ui/lpExplorer.js';
+import { permutationKey } from './math/lp.js';
 const COLORS = ['#709967', '#cb8290', '#6798bf'];
 const SUB = ['₀', '₁', '₂'];
 const STORAGE = 'alcove-walk-visualizer:v1';
@@ -19,14 +21,17 @@ let draggedRecently = false;
 let toastHandle;
 let explorer;
 let ram;
-function currentFoldPath() { return ram?.active ? ram.path : explorer?.active ? explorer.path : null; }
+let lp;
+function currentFoldPath() { return lp?.active ? lp.path : ram?.active ? ram.path : explorer?.active ? explorer.path : null; }
 function syncMode() {
-    const active = !!ram?.active;
-    $('ram-panel').hidden = !active;
-    $('weight-explorer-panel').hidden = active;
-    $('word-form').closest('section').hidden = active;
-    $('open-ram-mode').setAttribute('aria-pressed', String(active));
-    $('open-free-mode').setAttribute('aria-pressed', String(!active));
+    const ramActive = !!ram?.active, lpActive = !!lp?.active, guided = ramActive || lpActive;
+    $('ram-panel').hidden = !ramActive;
+    $('lp-panel').hidden = !lpActive;
+    $('weight-explorer-panel').hidden = guided;
+    $('word-form').closest('section').hidden = guided;
+    $('open-ram-mode').setAttribute('aria-pressed', String(ramActive));
+    $('open-lp-mode').setAttribute('aria-pressed', String(lpActive));
+    $('open-free-mode').setAttribute('aria-pressed', String(!guided));
 }
 function displayedNodes() {
     const path = currentFoldPath();
@@ -64,7 +69,7 @@ function mousePoint(e) {
 function initialCamera(w, h) { return { ox: w * .36, oy: h * .86, scale: 122 }; }
 function fitCamera(w, h, pad = 105, maxScale = 175) {
     // Fit the whole path in either direction; preserve the actual free-click points.
-    const pts = ram?.active ? ram.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : explorer?.active ? explorer.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : walk.nodes.map(n => n.point);
+    const pts = lp?.active ? lp.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : ram?.active ? ram.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : explorer?.active ? explorer.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : walk.nodes.map(n => n.point);
     let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
     for (const p of pts) {
         minU = Math.min(minU, p.u);
@@ -112,7 +117,7 @@ function visibleAlcoves(w, h, cam) {
 function nodeSVG(cam, w, h) {
     const nodes = displayedNodes(), current = nodes[nodes.length - 1].alcove, steps = nodes.length - 1;
     const allowed = new Map();
-    if (!explorer?.active && !ram?.active)
+    if (!explorer?.active && !ram?.active && !lp?.active)
         for (const edge of edges(walk.current))
             allowed.set(alcoveKey(edge.adjacent), edge.type);
     const visible = visibleAlcoves(w, h, cam);
@@ -125,12 +130,14 @@ function nodeSVG(cam, w, h) {
             bg.push(`<polygon points="${poly}" fill="#f5d67c" fill-opacity="0.68"/>`);
         if (allowed.has(key))
             bg.push(`<polygon points="${poly}" fill="#cddfcd" fill-opacity="0.38"/>`);
-        if (key === alcoveKey(current) && (steps > 0 || ram?.active))
+        if (key === alcoveKey(current) && (steps > 0 || ram?.active || lp?.active))
             bg.push(`<polygon points="${poly}" fill="#cfddd0" fill-opacity="0.45"/>`);
         if (explorer?.active && explorer.gallery && key === alcoveKey(explorer.gallery.target))
             bg.push(`<polygon points="${poly}" fill="#c7b6e4" fill-opacity="0.65" stroke="#8b70b1" stroke-width="2"/>`);
         if (ram?.active && ram.reference && key === alcoveKey(ram.reference.target))
             bg.push(`<polygon points="${poly}" fill="#c7b6e4" fill-opacity="0.65" stroke="#8b70b1" stroke-width="2"/>`);
+        if (lp?.active && lp.reference && key === alcoveKey(lp.reference.target))
+            bg.push(`<polygon points="${poly}" fill="#b7d6d1" fill-opacity="0.55" stroke="#488b83" stroke-width="2"/>`);
         hits.push(`<polygon points="${poly}" data-alcove="${key}" fill="transparent" stroke="none" aria-label="alcove ${key}"/>`);
         for (const e of edges(a))
             if (!uniqueEdges.has(edgeKey(e)))
@@ -154,7 +161,29 @@ function nodeSVG(cam, w, h) {
     const centroid = scenePoint(center(A0), cam);
     const tags = `<text x="${n(centroid.x - 12)}" y="${n(centroid.y - 20)}" font-family="Georgia,serif" font-style="italic" font-size="19" fill="#9e8142" text-anchor="middle">A₀</text>`;
     const route = [];
-    if (ram?.active) {
+    if (lp?.active) {
+        if (lp.referencePath)
+            route.push(foldedRouteSVG(lp.referencePath, cam, '#7692ad', false, true));
+        if (lp.overlay)
+            for (const item of lp.page)
+                route.push(foldedRouteSVG(item.path, cam, '#6baba2', false));
+        route.push(foldedRouteSVG(lp.path, cam, '#303834', true));
+        if (lp.reference) {
+            const target = scenePoint(center(lp.reference.target), cam);
+            const vertex = scenePoint(toCartesian(lp.reference.terminalVertex), cam);
+            route.push(`<text x="${n(target.x)}" y="${n(target.y + 30)}" text-anchor="middle" font-size="12" fill="#397c74" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">参考 A₀ − λ</text><circle cx="${n(vertex.x)}" cy="${n(vertex.y)}" r="5" fill="#397c74" stroke="#fffefa" stroke-width="2"/><text x="${n(vertex.x - 10)}" y="${n(vertex.y - 12)}" text-anchor="end" font-size="12" fill="#397c74" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">指定顶点 −λ</text>`);
+        }
+        for (const edge of edges(current)) {
+            const p = scenePoint(toCartesian({ x: (edge.start.x + edge.end.x) / 2, y: (edge.start.y + edge.end.y) / 2 }), cam);
+            route.push(`<text x="${n(p.x + 7)}" y="${n(p.y - 8)}" font-size="13" fill="${COLORS[edge.type]}" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">s${SUB[edge.type]}</text>`);
+        }
+        const next = lp.next;
+        if (next) {
+            const a = scenePoint(toCartesian(next.wall.start), cam), b = scenePoint(toCartesian(next.wall.end), cam);
+            route.push(`<line x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}" y2="${n(b.y)}" stroke="#fffefa" stroke-width="9"/><line data-current-lp-wall="true" x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}" y2="${n(b.y)}" stroke="${COLORS[next.wall.type]}" stroke-width="5"/><text x="${n((a.x + b.x) / 2 + 10)}" y="${n((a.y + b.y) / 2 - 15)}" font-size="12" fill="#303834" paint-order="stroke" stroke="#fffefa" stroke-width="4">实际 s${SUB[next.wall.type]} · ${next.wall.equation}</text>`);
+        }
+    }
+    else if (ram?.active) {
         if (ram.referencePath)
             route.push(foldedRouteSVG(ram.referencePath, cam, '#7692ad', false, true));
         if (ram.overlay)
@@ -223,7 +252,7 @@ function foldedRouteSVG(path, cam, color, selected, dashed = false) {
             d = `M ${n(a.x)} ${n(a.y)} L ${n(b.x)} ${n(b.y)}`;
         parts.push(`<path d="${d}" fill="none" stroke="${selected && step.kind === 'fold' ? '#a3558b' : color}" stroke-width="${selected ? 2.5 : dashed ? 2 : 1.5}" stroke-opacity="${selected ? 1 : dashed ? .75 : .22}"${dashed ? ' stroke-dasharray="6 5"' : ''}${selected ? ` marker-end="url(#${step.kind === 'fold' ? 'fold-arrow' : 'walk-arrow'})"` : ''}/>`);
         if (selected && step.kind === 'cross')
-            parts.push(`<text x="${n((a.x + b.x) / 2 + 6)}" y="${n((a.y + b.y) / 2 - 5)}" font-size="10" fill="#303834" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">${step.index}${ram?.active ? `: c${SUB[step.type]}${step.sign > 0 ? '⁺' : '⁻'}` : ''}</text>`);
+            parts.push(`<text x="${n((a.x + b.x) / 2 + 6)}" y="${n((a.y + b.y) / 2 - 5)}" font-size="10" fill="#303834" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">${step.index}${ram?.active || lp?.active ? `: c${SUB[step.type]}${step.sign > 0 ? '⁺' : '⁻'}` : ''}</text>`);
     }
     if (selected) {
         const start = scenePoint(center(path.nodes[0]), cam), end = scenePoint(center(path.nodes[path.nodes.length - 1]), cam);
@@ -251,19 +280,19 @@ function render() {
     chips.innerHTML = path ? `<span class="fold-action-word">${actionLabel(path)}</span>` : word.length ? word.map(t => `<span class="word-chip s${t}">s${SUB[t]}</span>`).join('') : '<span class="empty-word">e</span>';
     const badge = $('reduced-badge');
     const reduced = steps === length;
-    badge.textContent = ram?.active ? `${ram.walk?.complete ? '已完成' : '进行中'} · ${path.folds} folds` : path?.folds ? `${path.folds} 次折叠` : reduced ? '约化路线' : '非约化路线';
+    badge.textContent = lp?.active ? `${lp.walk?.complete ? '已完成' : '进行中'} · LP · ${path.folds} folds` : ram?.active ? `${ram.walk?.complete ? '已完成' : '进行中'} · ${path.folds} folds` : path?.folds ? `${path.folds} 次折叠` : reduced ? '约化路线' : '非约化路线';
     badge.classList.toggle('not-reduced', !reduced);
-    $('endpoint-label').textContent = path ? `${ram?.active && !ram.walk?.complete ? '当前' : '终点'} ${alcoveKey(current)}` : `终点 A${toSubscript(steps)}`;
+    $('endpoint-label').textContent = path ? `${(ram?.active && !ram.walk?.complete) || (lp?.active && !lp.walk?.complete) ? '当前 alcove' : '最终 alcove'} ${alcoveKey(current)}` : `终点 A${toSubscript(steps)}`;
     $('undo-btn').toggleAttribute('disabled', !!path || !walk.canUndo);
     $('redo-btn').toggleAttribute('disabled', !!path || !walk.canRedo);
     $('clear-btn').toggleAttribute('disabled', !!path || walk.steps === 0);
     $('zoom-label').textContent = `${Math.round(camera.scale / 122 * 100)}%`;
     $('canvas-footnote').textContent = path ? '虚线：参考路径 · 紫色回环：折叠 · 淡线：本页路径 · 点击记录定位' : `已记录 ${walk.steps} 步 · 点击浅绿色相邻 alcove 继续，点击记录可定位`;
-    $('drawing-status').textContent = ram?.active ? 'Ram 逐步行走' : explorer?.active ? '折叠路径浏览' : tool === 'pan' ? '平移模式' : '打点模式';
-    document.querySelector('.canvas-heading h1').textContent = ram?.active ? 'Ram Alcove Walk Mode' : explorer?.active ? 'Weight → reduced path → folded walks' : '从 A₀ 出发，点击相邻 alcove';
-    document.querySelector('.canvas-heading p').textContent = ram?.active ? '粗线是当前指定墙；按几何方向选择 crossing / folding。' : explorer?.active ? '紫色 alcove 是 A₀ − λ；折叠后的终点可以不同。' : '沿着三色墙，画出你的路线。';
+    $('drawing-status').textContent = lp?.active ? 'LP admissible foldings' : ram?.active ? 'Ram 逐步行走' : explorer?.active ? '折叠路径浏览' : tool === 'pan' ? '平移模式' : '打点模式';
+    document.querySelector('.canvas-heading h1').textContent = lp?.active ? 'LP Admissible Foldings' : ram?.active ? 'Ram Alcove Walk Mode' : explorer?.active ? 'Weight → reduced path → folded walks' : '从 A₀ 出发，点击相邻 alcove';
+    document.querySelector('.canvas-heading p').textContent = lp?.active ? '几何起点固定 A₀；折叠按原参考反射检验 Bruhat cover。' : ram?.active ? '粗线是当前指定墙；按几何方向选择 crossing / folding。' : explorer?.active ? '紫色 alcove 是 A₀ − λ；折叠后的终点可以不同。' : '沿着三色墙，画出你的路线。';
     const live = document.querySelector('.live-dot');
-    live.innerHTML = `<i></i>${ram?.active ? 'Ram 模式' : explorer?.active ? '折叠路径' : '自由绘制'}`;
+    live.innerHTML = `<i></i>${lp?.active ? 'LP 模式' : ram?.active ? 'Ram 模式' : explorer?.active ? '折叠路径' : '自由绘制'}`;
     const next = ram?.active ? ram.next : null;
     $('ram-choice-popup').hidden = !next?.canFold;
     if (next?.canFold) {
@@ -288,7 +317,7 @@ function renderLog() {
         const edge = foldStep?.wall ?? crossedWall(previous, nd.alcove);
         if (foldStep) {
             const side = foldStep.kind === 'fold' ? foldStep.sign : -foldStep.sign;
-            html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">${foldStep.kind === 'fold' ? '↶ 折叠 · 留在当前 alcove' : '→ 穿墙'} (${foldStep.sign > 0 ? '+' : '−'})</span><br/><span class="log-subtitle">${edge?.equation} · ${alcoveKey(nd.alcove)}${ram?.active ? `<br/>当前侧 ${side > 0 ? '+' : '−'} · 参考 ε = ${ram.reference.signs[k - 1] > 0 ? '+' : '−'}` : ''}</span></span><span class="log-type t${nd.via}">${foldStep.kind === 'fold' ? 'f' : 'c'}${SUB[nd.via]}${foldStep.sign > 0 ? '⁺' : '⁻'}</span></li>`);
+            html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">${foldStep.kind === 'fold' ? '↶ 折叠 · 留在当前 alcove' : '→ 穿墙'} (${foldStep.sign > 0 ? '+' : '−'})</span><br/><span class="log-subtitle">${edge?.equation} · ${alcoveKey(nd.alcove)}${lp?.active ? `<br/>参考 r̄${k} = ${permutationKey(lp.reference.reflections[k - 1].finite)} · v: ${permutationKey(lp.path.steps[k - 1].vBefore)} → ${permutationKey(lp.path.steps[k - 1].vAfter)}` : ''}${ram?.active ? `<br/>当前侧 ${side > 0 ? '+' : '−'} · 参考 ε = ${ram.reference.signs[k - 1] > 0 ? '+' : '−'}` : ''}</span></span><span class="log-type t${nd.via}">${foldStep.kind === 'fold' ? 'f' : 'c'}${SUB[nd.via]}${foldStep.sign > 0 ? '⁺' : '⁻'}</span></li>`);
             continue;
         }
         html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">A${toSubscript(k - 1)} → A${toSubscript(k)}</span><br/><span class="log-subtitle">${edge?.equation ?? '—'} · ${alcoveKey(nd.alcove)}</span></span><span class="log-type t${nd.via}">s${SUB[nd.via]}</span></li>`);
@@ -305,7 +334,7 @@ function setTool(next) {
     for (const b of document.querySelectorAll('[data-tool]'))
         b.classList.toggle('selected', b.dataset.tool === next);
     svg.classList.toggle('pan-cursor', next === 'pan');
-    $('drawing-status').textContent = ram?.active ? 'Ram 逐步行走' : explorer?.active ? '折叠路径浏览' : next === 'pan' ? '平移模式' : '打点模式';
+    $('drawing-status').textContent = lp?.active ? 'LP admissible foldings' : ram?.active ? 'Ram 逐步行走' : explorer?.active ? '折叠路径浏览' : next === 'pan' ? '平移模式' : '打点模式';
 }
 function setZoom(factor, px, py) {
     const { w, h } = dims(), x = px ?? w / 2, y = py ?? h / 2;
@@ -319,6 +348,10 @@ function fitPath() { const { w, h } = dims(); camera = fitCamera(w, h); update()
 function onAlcoveClick(key, e) {
     if (tool !== 'draw' || spaceHeld || draggedRecently)
         return;
+    if (lp.active) {
+        showToast('请用 Cross / Fold 执行 LP 步骤；u 只作为 Bruhat 链输入');
+        return;
+    }
     if (ram.active) {
         showToast('请用 Crossing / Folding 按钮执行当前指定墙；拖动可平移画布');
         return;
@@ -347,6 +380,7 @@ function loadWord(word) {
         walk.setWord(word);
         explorer.deactivate();
         ram.deactivate();
+        lp.deactivate();
         fitPath();
         showToast(`已绘制 ${word.length} 步：${formatWord(word)}`);
     }
@@ -399,23 +433,40 @@ function restore() {
     }
     catch { /* Ignore malformed local storage */ }
 }
-explorer = new FoldExplorer(fit => { if (explorer.active)
-    ram?.deactivate(); if (fit)
+explorer = new FoldExplorer(fit => { if (explorer.active) {
+    ram?.deactivate();
+    lp?.deactivate();
+} if (fit)
     fitPath();
 else
     update(); });
-ram = new RamExplorer(fit => { if (ram.active && explorer.active)
-    explorer.deactivate(); if (fit)
+ram = new RamExplorer(fit => { if (ram.active) {
+    explorer.deactivate();
+    lp?.deactivate();
+} if (fit)
+    fitPath();
+else
+    update(); });
+lp = new LPExplorer(fit => { if (lp.active) {
+    explorer.deactivate();
+    ram.deactivate();
+} if (fit)
     fitPath();
 else
     update(); });
 restore();
 explorer.restore();
 ram.restore();
-if (ram.active)
+lp.restore();
+if (lp.active) {
+    ram.deactivate();
     explorer.deactivate();
-$('open-free-mode').addEventListener('click', () => { ram.deactivate(); explorer.deactivate(); fitPath(); });
-$('open-ram-mode').addEventListener('click', () => { explorer.deactivate(); ram.activate(); });
+}
+else if (ram.active)
+    explorer.deactivate();
+$('open-free-mode').addEventListener('click', () => { lp.deactivate(); ram.deactivate(); explorer.deactivate(); fitPath(); });
+$('open-ram-mode').addEventListener('click', () => { lp.deactivate(); explorer.deactivate(); ram.activate(); });
+$('open-lp-mode').addEventListener('click', () => { ram.deactivate(); explorer.deactivate(); lp.activate(); });
 $('ram-popup-cross').addEventListener('click', () => ram.perform('cross'));
 $('ram-popup-fold').addEventListener('click', () => ram.perform('fold'));
 $('snap-checkbox').checked = snap;
@@ -432,7 +483,7 @@ svg.addEventListener('click', e => {
 });
 svg.addEventListener('pointerdown', e => {
     const hit = e.target.closest('[data-alcove]');
-    if (ram.active || explorer.active || tool === 'pan' || spaceHeld || !hit) {
+    if (lp.active || ram.active || explorer.active || tool === 'pan' || spaceHeld || !hit) {
         drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: camera.ox, oy: camera.oy, moved: false };
         svg.setPointerCapture(e.pointerId);
         svg.classList.add('is-dragging');
@@ -503,7 +554,7 @@ $('walk-log').addEventListener('click', e => {
     camera.oy = h / 2 - camera.scale * node.point.v;
     update();
 });
-$('export-json').addEventListener('click', () => { download('alcove-path-A2.json', JSON.stringify((ram.active ? ram.exportData() : null) ?? explorer.exportData() ?? { rootSystem: 'A2_affine', convention: 'right action', nodes: walk.nodes, word: walk.word }, null, 2), 'application/json;charset=utf-8'); showToast('已导出 JSON'); });
+$('export-json').addEventListener('click', () => { download('alcove-path-A2.json', JSON.stringify((lp.active ? lp.exportData() : null) ?? (ram.active ? ram.exportData() : null) ?? explorer.exportData() ?? { rootSystem: 'A2_affine', convention: 'right action', nodes: walk.nodes, word: walk.word }, null, 2), 'application/json;charset=utf-8'); showToast('已导出 JSON'); });
 const dialog = $('help-dialog');
 $('help-btn').addEventListener('click', () => dialog.showModal());
 $('help-close').addEventListener('click', () => dialog.close());
@@ -515,7 +566,7 @@ document.addEventListener('keydown', e => {
         svg.classList.add('pan-cursor');
     }
     if (e.ctrlKey || e.metaKey) {
-        if (ram.active || explorer.active || e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)
+        if (lp.active || ram.active || explorer.active || e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)
             return;
         if (e.key.toLowerCase() === 'z') {
             e.preventDefault();

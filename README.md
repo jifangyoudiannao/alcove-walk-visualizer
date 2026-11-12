@@ -12,6 +12,7 @@ An interactive alcove walk visualizer for the affine Coxeter complex of type \(\
 - Fundamental alcove \(A_0\) highlighted in gold.
 - Enter an integral weight \(\lambda=a\omega_1+b\omega_2\), find one reduced gallery to \(A_0-\lambda\), and explore its folded paths.
 - Independent **Ram Alcove Walk Mode**: choose a reference to \(A_0+\lambda\), start at any of the six finite-Weyl alcoves \(wA_0\), execute only legal crossings/folds, or enumerate every legal walk.
+- Independent **LP Admissible Foldings**: keep the geometry at \(A_0\), choose a Schubert input \(u\in S_3\), and enumerate exactly the decreasing Bruhat-cover foldings of a reference to \(A_0-\lambda\), with equivariant K-theory terms.
 - The earlier \(A_0-\lambda\) explorer retains all geometric folds, positive folds, and the fixed-start \(w=e\) Ram specialization. Exact counts and pagination preserve the complete family.
 - Click an adjacent alcove to add a point, arrow, and numbered step. Only edge-adjacent moves are allowed. Return moves are recorded rather than erased.
 - Optional snap-to-center, pan (space + drag or hand tool), wheel zoom, recenter, fit path.
@@ -123,9 +124,62 @@ This coefficient is distinct from Ram's endpoint weight \(\operatorname{wt}(p)\)
 
 The browser performs all calculation locally. `npm run build` produces a complete static `dist/` directory that can be deployed directly to GitHub Pages; no backend is needed.
 
+## LP Admissible Foldings
+
+Select **LP Admissible Foldings** in the mode selector. This mode implements the **\(u\)-admissible** foldings in Lenart–Postnikov's Definition 18.5 and Theorem 6.1. Its state and admissibility rules are independent of Ram mode and free drawing.
+
+1. Enter \(\lambda=a\omega_1+b\omega_2\). The default is \(\omega_1\); the reference endpoint is \(A_0-\lambda\), with key `-a,-b,L`.
+2. Select **Schubert input u / Bruhat-chain start**. The default is \(u=w_0=321\). Every geometric path still starts at \(A_0\): changing \(u\) changes only the finite Bruhat-chain state, and never moves the initial alcove or inserts a prefix.
+3. Click **固定 LP 参考路径**. Leave the optional reduced word blank to generate one, or enter your own. The engine checks that no actual affine hyperplane is crossed twice, and that the geometric endpoint is correct. Repeated wall-type labels are allowed. As in the other modes, references are limited to 60 steps.
+4. At each reference position, compare the **current actual wall** with the **original reference reflection**, then use **Cross** or **Fold**. The panel shows the current finite permutation, its candidate successor, both inversion lengths, and the exact reason a fold is allowed or forbidden. **Undo** restores the alcove, Bruhat element, and folding positions together; **Reset 本条** restores \((A_0,u,\varnothing)\).
+5. Click **Enumerate All LP Foldings**, then select any result to show its geometry, operation sequence, folding positions, finite Bruhat chain, output index, and contribution. Different folding sets remain separate even when their final alcoves or output indices coincide. The JSON exports include all these records.
+
+The fixed reference data at position \(k\) are
+
+\[
+r_k=g^{\mathrm{ref}}_{k-1}s_{i_k}(g^{\mathrm{ref}}_{k-1})^{-1},
+\qquad \bar r_k\in S_3.
+\]
+
+These data are computed once from the unfolded reference and remain unchanged after folds. The actual wall used for drawing is always the type-\(i_k\) wall of the **current** alcove. With \(gA_0\) denoting the geometric state and \(v\) the Bruhat state, the updates are:
+
+| Operation | Allowed when | Geometry | Bruhat state |
+| --- | --- | --- | --- |
+| Cross | Always | \(g\mapsto gs_{i_k}\) | \(v\mapsto v\) |
+| Fold | \(\ell(v\bar r_k)=\ell(v)-1\) | \(g\mapsto g\) | \(v\mapsto v\bar r_k\) |
+
+Permutation multiplication is \((ab)(i)=a(b(i))\), so the Bruhat update uses **right multiplication** by the original reference reflection. Lengths are exact inversion numbers. Actual crossing/fold signs may be displayed, but no Ram sign filter is applied. Both operations consume exactly one reference position.
+
+**Example 15.6** can be loaded directly. It uses \(\lambda=\omega_1\), \(u=321\), the wall-type word \((1,2)\), and original reflections \((r_1,r_2)=(s_1,s_1s_2s_1)\). Its three results are:
+
+| Folding set \(J\) | Geometric alcove sequence | Output \(w\) | \(\mu(J)\) |
+| --- | --- | --- | --- |
+| \(\varnothing\) | \((A_0,s_1A_0,s_1s_2A_0)\) | \(321=w_0\) | \(-\omega_2\) |
+| \(\{1\}\) | \((A_0,A_0,s_2A_0)\) | \(231=s_1s_2\) | \(-\omega_1+\omega_2\) |
+| \(\{1,2\}\) | \((A_0,A_0,A_0)\) | \(132=s_2\) | \(\omega_1\) |
+
+The set \(\{2\}\) is forbidden: \(321\bar r_2=123\) drops the length from 3 to 0, rather than by 1. Changing only \(u\) to \(123=e\) leaves just \(J=\varnothing\), because \(e\) has no descending Bruhat cover. This is unrelated to the geometric starting alcove, which is \(A_0\) in every case.
+
+For each complete path the implementation calculates
+
+\[
+\mu(J)=-u\,r_{j_1}\cdots r_{j_s}(-\lambda),
+\qquad
+(-1)^{n(J)}x^{\mu(J)}[\mathcal O_{w(J)}].
+\]
+
+Here \(n(J)\) counts the **negative roots of the original reference \(\lambda\)-chain** at selected positions. It is not the number of actual negative folds. General signed integral weights use this sign rule; for dominant \(\lambda\), every contribution has positive sign. The designated terminal vertex is exactly \(-\lambda\), not the alcove center or \(g^{\mathrm{ref}}_m(0)\). Reflections and the finite Weyl action use exact integer weight coordinates. The geometric final alcove and the output Schubert index \(w(J)\) are explicitly separate outputs.
+
+All paths satisfy \(|J|=\ell(u)-\ell(w(J))\); this is an output check, while admissibility is still checked at every fold. Enumeration uses the complete branch tree with exact counts and indexed pagination. The full JSON export is limited to 10,000 paths per file; larger families remain available through pagination and selected-path export.
+
+The mode implements the LP **K-theory** combination rule. It does not use Ram's \((q-q^{-1})^{|J|}\) factor, and it does not claim an elliptic Chevalley formula. The tests include the exact Example 15.6, the \(u=e\) specialization, the length identity, and comparison with independent enumeration of all folding subsets.
+
+Validation: `npm test` passes all 41 tests (11 LP tests plus 30 existing tests). The independent subset oracle compares 150 families (25 signed weights and all six inputs) and 628 complete paths, including every operation, alcove, Bruhat chain, and output index. A separate ambient-coordinate oracle checks the equivariant exponents and signs, including nonzero affine levels. Browser checks cover manual choices, forbidden folds, undo/reset, mode isolation, persistence, pagination, custom references, and JSON/SVG exports.
+
 ## References
 
 - [Arun Ram, *Alcove walks, Hecke algebras, spherical functions, crystals and column strict tableaux*, §3.1–3.2, Theorem 3.3](https://arxiv.org/pdf/math/0601343#page=13)
+- [Cristian Lenart and Alexander Postnikov, *Affine Weyl Groups in K-Theory and Representation Theory*, Theorem 6.1, §18.1, Definition 18.5, Example 15.6](https://math.mit.edu/~apost/papers/kchevalley-v2.pdf)
 - [Rui Xiong, affine notes, p. 75 (alcove diagram)](https://cubicbear.github.io/doc/affineNotes.pdf#page=75)
 - [Example 2.19, p. 19 (walks)](https://cubicbear.github.io/doc/affineNotes.pdf#page=19)
 
@@ -141,11 +195,13 @@ alcove-walk-visualizer/
 │   │   ├── affineA2.ts         # Geometry / Coxeter labeling / length
 │   │   ├── walk.ts             # Walk state + undo/redo
 │   │   ├── folded.ts           # Earlier weight galleries and geometric folded families
-│   │   └── ram.ts              # Ram local choices, manual execution and exact enumeration
+│   │   ├── ram.ts              # Ram local choices, manual execution and exact enumeration
+│   │   └── lp.ts               # LP reference reflections, Bruhat covers and K-theory terms
 │   └── ui/prompt.ts            # Reusable development prompt
 ├── test/affineA2.test.mjs
 ├── test/folded.test.mjs
 ├── test/ram.test.mjs
+├── test/lp.test.mjs
 ├── scripts/copy-static.mjs
 ├── tsconfig.json
 ├── package.json

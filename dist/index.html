@@ -47,6 +47,7 @@
         <nav class="mode-switch" aria-label="Alcove walk 模式">
           <button id="open-free-mode" type="button" class="selected" aria-pressed="true">自由绘制</button>
           <button id="open-ram-mode" type="button" aria-pressed="false">Ram Alcove Walk Mode</button>
+          <button id="open-lp-mode" type="button" class="lp-mode-tab" aria-pressed="false">LP Admissible Foldings</button>
         </nav>
         <section id="ram-panel" class="side-section ram-panel" aria-labelledby="ram-heading" hidden>
           <div class="side-label-row"><h3 id="ram-heading">Ram Alcove Walk Mode</h3><span class="feature-tag">A₂</span></div>
@@ -120,6 +121,76 @@
             <a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Ram §3.1、Theorem 3.3、Remark 3.5 ↗</a>
           </details>
         </section>
+        <section id="lp-panel" class="side-section lp-panel" aria-labelledby="lp-heading" hidden>
+          <div class="side-label-row"><h3 id="lp-heading">LP Admissible Foldings</h3><span class="lp-feature-tag">K-THEORY</span></div>
+          <p class="lp-intro">几何起点固定为 A₀；u 只指定有限 Bruhat 链的起点。</p>
+          <div class="lp-origin-note"><strong>几何状态从 A₀ 开始</strong><span>Bruhat 状态从 u 开始；两者独立记录。</span></div>
+          <form id="lp-form" class="lp-form">
+            <div class="lp-weight-title">λ = aω₁ + bω₂ <span>参考终点 A₀ − λ</span></div>
+            <div class="lp-weight-fields">
+              <label for="lp-a">a<input id="lp-a" type="number" value="1" step="1" required aria-label="LP 参考 weight 的 ω₁ 系数 a" /></label>
+              <label for="lp-b">b<input id="lp-b" type="number" value="0" step="1" required aria-label="LP 参考 weight 的 ω₂ 系数 b" /></label>
+            </div>
+            <label for="lp-u">Schubert input u / Bruhat-chain start</label>
+            <select id="lp-u" aria-describedby="lp-u-note">
+              <option value="123">123 · e</option>
+              <option value="213">213 · s₁</option>
+              <option value="132">132 · s₂</option>
+              <option value="231">231 · s₁s₂</option>
+              <option value="312">312 · s₂s₁</option>
+              <option value="321" selected>321 · w₀ = s₁s₂s₁（默认）</option>
+            </select>
+            <p id="lp-u-note" class="hint">选择 u 不会移动几何起点，也不会添加路径前缀。</p>
+            <details class="lp-custom-reference"><summary>指定参考 reduced word（可选）</summary><label for="lp-reference-input">从 A₀ 到 A₀ − λ 的墙类型序列</label><input id="lp-reference-input" type="text" placeholder="留空自动生成；ω₁ 示例为 1 2" spellcheck="false" /><p class="hint">约化性按实际 affine hyperplane 检查；墙类型可以重复。最多 60 步。</p></details>
+            <button type="submit" class="dark-button lp-configure">固定 LP 参考路径</button>
+          </form>
+          <button id="lp-demo" type="button" class="lp-demo">载入 Example 15.6</button>
+          <p id="lp-error" class="weight-error" role="alert"></p>
+          <div id="lp-work" hidden>
+            <div class="lp-reference"><p id="lp-reference-summary"></p><p id="lp-reference-roots"></p></div>
+            <div class="lp-step-panel">
+              <div class="side-label-row"><h3>当前一步</h3><span id="lp-progress" class="lp-progress" role="status" aria-live="polite"></span></div>
+              <dl class="lp-step-data">
+                <div><dt>当前实际 alcove</dt><dd id="lp-current"></dd></div>
+                <div><dt>位置 / 类型 / 实际墙</dt><dd id="lp-next-wall"></dd></div>
+                <div class="lp-reference-row"><dt>原参考根 / 反射</dt><dd id="lp-reference-reflection"></dd></div>
+                <div><dt>当前 Bruhat 元素 v</dt><dd id="lp-v"></dd></div>
+                <div><dt>候选 v r̄ₖ</dt><dd id="lp-candidate"></dd></div>
+                <div><dt>长度比较</dt><dd id="lp-lengths"></dd></div>
+              </dl>
+              <p id="lp-fold-reason" class="lp-fold-reason" role="status" aria-live="polite"></p>
+              <div class="lp-choices" role="group" aria-label="LP Crossing / Folding 选择">
+                <button id="lp-cross" type="button">Cross</button><button id="lp-fold" type="button">Fold</button>
+              </div>
+              <p class="hint">Cross 改变 alcove；Fold 改变 v。正负标签只作辅助显示，不参与 LP 筛选。</p>
+              <div class="lp-history"><button id="lp-undo" type="button">← Undo</button><button id="lp-reset" type="button">Reset 本条</button></div>
+              <p id="lp-complete-note" class="lp-complete-note" role="status" aria-live="polite"></p>
+            </div>
+            <div class="lp-path-summary">
+              <p id="lp-positions"></p><p id="lp-chain"></p><p id="lp-output-w"></p><p id="lp-term"></p>
+              <p class="hint">最终 alcove 是几何位置；输出 Schubert 指标 w 是有限排列，两者不是同一个对象。</p>
+            </div>
+            <button id="lp-enumerate" type="button" class="dark-button lp-enumerate">Enumerate All LP Foldings</button>
+            <div id="lp-family" hidden>
+              <div class="family-total"><span>u-admissible foldings</span><strong id="lp-total">0</strong></div>
+              <label class="switch-line family-overlay"><span>叠加本页路径</span><input id="lp-overlay" type="checkbox" checked /></label>
+              <p id="lp-page-info" class="hint" role="status" aria-live="polite"></p>
+              <div id="lp-list" class="lp-list" aria-label="LP admissible folding 路径列表"></div>
+              <div class="family-pagination"><button id="lp-prev" type="button">← 上一页</button><button id="lp-next" type="button">下一页 →</button></div>
+              <form id="lp-jump-form" class="family-jump-form"><label for="lp-jump">跳至路径</label><input id="lp-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="LP 路径编号，从 1 开始" /><button type="submit">跳转</button></form>
+              <p class="hint">不同 J 分别保留，不按最终 alcove 或 w 去重。整批 JSON 导出最多 10,000 条。</p>
+              <button id="lp-export-all" type="button" class="wide-outline">导出全部 LP 路径 JSON</button>
+            </div>
+            <button id="lp-export-selected" type="button" class="wide-outline">导出当前 LP folding</button>
+          </div>
+          <details class="lp-rules"><summary>查看 LP u-admissibility 与权重</summary>
+            <p>参考路径从 A₀ 到 A₀ − λ。原参考墙的反射 rₖ 及其有限部分 r̄ₖ 固定不变。实际绘图墙则在每一步由当前 alcove 重新确定。</p>
+            <p>Cross 始终允许：g → gsᵢ，v 不变。Fold 当且仅当 ℓ(vr̄ₖ) = ℓ(v) − 1：g 不变，v → vr̄ₖ。乘法采用 (ab)(i) = a(b(i))。</p>
+            <p>贡献为 (−1)<sup>n(J)</sup>x<sup>μ(J)</sup>[O<sub>w</sub>]，其中 μ(J) = −u r<sub>j₁</sub>⋯r<sub>jₛ</sub>(−λ)，n(J) 统计所选原参考根中的负根。Dominant λ 的 reduced 参考路径下，所有贡献符号为正。</p>
+            <p>权重从指定顶点 −λ 计算；不使用 alcove 中心或参考群元素作用于 0。此模式实现 LP 的 K-theory 组合规则，不采用 Ram 的符号筛选或 q 权重，也不表示已得到 elliptic Chevalley formula。</p>
+            <a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov · Theorem 6.1、§18.1、Example 15.6 ↗</a>
+          </details>
+        </section>
         <section id="weight-explorer-panel" class="side-section weight-explorer" aria-labelledby="weight-heading">
           <div class="side-label-row"><h3 id="weight-heading">Weight → 折叠路径</h3><span class="feature-tag">NEW</span></div>
           <p class="weight-equation">λ = aω₁ + bω₂ <span>终点 A₀ − λ</span></p>
@@ -164,7 +235,7 @@
     <footer class="site-footer"><span>万格亲而画，为思考留迹。</span><span>Type A₂ · Coxeter complex · 可本地运行</span></footer>
   </div>
   <div class="toast" role="status" id="toast" aria-live="polite"></div>
-  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p><strong>Weight 与折叠：</strong>输入 λ = aω₁ + bω₂，得到从 A₀ 到 A₀ − λ 的一条 reduced path。折叠会触及当前墙并返回同一个 alcove；后续步骤仍按原墙类型序列，在当前 alcove 寻找下一面墙。折叠路径不必结束于 A₀ − λ。</p><p><strong>独立 Ram 模式：</strong>参考终点使用 A₀ + λ，起点可选择有限 Weyl 群的任意 wA₀。固定参考路径后，每一步高亮实际墙并显示合法 crossing / folding 选择，也可枚举全部合法路径。自由绘制区域原有 A₀ − λ 工具保持不变。</p><p><strong>规则区别：</strong>“每墙均可折叠”允许所有穿墙 / 折叠选择；“仅正折叠”要求折叠留在墙的正侧。Ram §3.2 的 Theorem 3.3 要求第 k 步的折叠符号等于参考穿墙符号 εₖ；以 A₀ 为起点（w = e）并使用同一参考路径时，只有原始不折叠路径满足该条件。这里没有加入 Lenart–Postnikov 的 Bruhat cover 条件。</p><p class="source-note">折叠定义与带符号规则：<a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Arun Ram, §3.1–3.2，Theorem 3.3</a>。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
+  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p><strong>Weight 与折叠：</strong>输入 λ = aω₁ + bω₂，得到从 A₀ 到 A₀ − λ 的一条 reduced path。折叠会触及当前墙并返回同一个 alcove；后续步骤仍按原墙类型序列，在当前 alcove 寻找下一面墙。折叠路径不必结束于 A₀ − λ。</p><p><strong>独立 Ram 模式：</strong>参考终点使用 A₀ + λ，起点可选择有限 Weyl 群的任意 wA₀。固定参考路径后，每一步高亮实际墙并显示合法 crossing / folding 选择，也可枚举全部合法路径。自由绘制区域原有 A₀ − λ 工具保持不变。</p><p><strong>规则区别：</strong>“每墙均可折叠”允许所有穿墙 / 折叠选择；“仅正折叠”要求折叠留在墙的正侧。Ram §3.2 的 Theorem 3.3 要求第 k 步的折叠符号等于参考穿墙符号 εₖ；以 A₀ 为起点（w = e）并使用同一参考路径时，只有原始不折叠路径满足该条件。上述 Ram 与几何模式没有加入 Lenart–Postnikov 的 Bruhat cover 条件。</p><p><strong>独立 LP 模式：</strong>所有几何路径从 A₀ 出发；Schubert input u 是独立的有限 Bruhat 链起点。参考终点使用 A₀ − λ，Cross 始终允许，Fold 当且仅当 ℓ(vr̄ₖ) = ℓ(v) − 1。Bruhat 检验使用原参考墙的有限反射，绘图使用当前实际墙；二者不会混用。可载入 Example 15.6 查看三个合法折叠集合。</p><p class="source-note">LP K-theory 规则：<a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov，Theorem 6.1、Definition 18.5、Example 15.6</a>。</p><p class="source-note">折叠定义与带符号规则：<a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Arun Ram, §3.1–3.2，Theorem 3.3</a>。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
