@@ -11,7 +11,8 @@ An interactive alcove walk visualizer for the affine Coxeter complex of type \(\
 - Triangular tessellation of type \(\widetilde{A}_2\), with consistent s₀ (green), s₁ (red), s₂ (blue) labels **on each edge**.
 - Fundamental alcove \(A_0\) highlighted in gold.
 - Enter an integral weight \(\lambda=a\omega_1+b\omega_2\), find one reduced gallery to \(A_0-\lambda\), and explore its folded paths.
-- Choose all geometric folds, positive folds, or Ram §3.2 signed folds. Exact counts and pagination preserve the complete family without constructing every path at once.
+- Independent **Ram Alcove Walk Mode**: choose a reference to \(A_0+\lambda\), start at any of the six finite-Weyl alcoves \(wA_0\), execute only legal crossings/folds, or enumerate every legal walk.
+- The earlier \(A_0-\lambda\) explorer retains all geometric folds, positive folds, and the fixed-start \(w=e\) Ram specialization. Exact counts and pagination preserve the complete family.
 - Click an adjacent alcove to add a point, arrow, and numbered step. Only edge-adjacent moves are allowed. Return moves are recorded rather than erased.
 - Optional snap-to-center, pan (space + drag or hand tool), wheel zoom, recenter, fit path.
 - Coxeter word, shortest gallery length, reduced/non-reduced indication, visited alcove count, step log.
@@ -83,9 +84,44 @@ The rule selector distinguishes three different families:
 | 仅正折叠 / Positive folds | A fold must stay on the positive side of its wall. For walls \(x=n\), \(y=n\), and \(x+y=n\), the positive side uses \(>n\). |
 | Ram §3.2 | As in Theorem 3.3, the fold sign at step \(k\) must equal the reference crossing sign \(\epsilon_k\). Equivalently, the crossing available from the current alcove must have sign \(-\epsilon_k\). |
 
-Here a positive crossing goes from the negative side to the positive side; a positive fold stays on the positive side. For Ram's rule, this interface fixes the initial alcove to \(A_0\), corresponding to \(w=e\). The reference gallery's first fold would violate the required sign, so **only the original nonfolded gallery remains**. The unrestricted and positive-fold families are not presented as the terms of that theorem, and no Lenart–Postnikov Bruhat-cover admissibility condition is imposed.
+Here a positive crossing goes from the negative side to the positive side; a positive fold stays on the positive side. For Ram's rule, this older weight-explorer panel fixes the initial alcove to \(A_0\), corresponding to \(w=e\). The reference gallery's first fold would violate the required sign, so **only the original nonfolded gallery remains**. The separate Ram Alcove Walk Mode below allows a nonidentity initial direction. The unrestricted and positive-fold families in this older panel are not presented as the terms of that theorem, and no Lenart–Postnikov Bruhat-cover admissibility condition is imposed.
 
 Paths are indexed by their complete crossing/folding choices, with crossing branches first. Different paths are retained even if their endpoints coincide. Counts use exact integers; eight paths are loaded per page, and **跳至路径** accepts a one-based path number for direct navigation. The full family is accessible without a truncation cap. The overlay shows the current page, while a selected path can be inspected step by step. **查看 reduced path** restores the reference view; **返回自由绘制** leaves the explorer.
+
+## Ram Alcove Walk Mode
+
+Select **Ram Alcove Walk Mode** above the sidebar controls. This mode has independent path state; the original drawing mode and its undo/redo history remain available through **自由绘制**.
+
+1. Enter \(\lambda=a\omega_1+b\omega_2\). Here the reference path goes from \(A_0\) to **\(A_0+\lambda\)**, whose coordinate key is `a,b,L`. This plus-sign convention is distinct from the older minus-weight explorer.
+2. Choose the actual initial alcove \(wA_0\), with \(w\in\{e,s_1,s_2,s_1s_2,s_2s_1,w_0\}\). The default is \(e\). **载入有折叠的示例** sets up a nonidentity start for exploring branches immediately.
+3. Click **固定参考路径** to generate a reduced gallery. Optionally expand **指定参考 reduced word** and enter a wall-type word; it must be reduced and terminate at the selected \(A_0+\lambda\). The 60-step reference limit applies here too.
+4. At every step, inspect the highlighted actual wall, the current alcove's side, and the reference sign. Click **Crossing** or **Folding** when enabled. **上一步** undoes one operation and **重置本条** returns to the configured starting alcove.
+5. Click **Enumerate All Ram Walks** to obtain the exact total and browse all legal results. Click a result to highlight its full operation sequence; pagination and direct path-number navigation never merge paths with equal endpoints.
+
+The reference path fixes wall types \((j_1,\ldots,j_m)\) and signs \((\varepsilon_1,\ldots,\varepsilon_m)\). Actual walls are recalculated in the **current** alcove after each operation. For an affine wall \(H_{\alpha,n}\), the positive side means \(\langle x,\alpha^\vee\rangle>n\); color and Coxeter type do not determine the side.
+
+| Reference sign | Current side | Allowed operations |
+| --- | --- | --- |
+| \(+\) | Negative | \(c_i^+\) |
+| \(+\) | Positive | \(c_i^-\), \(f_i^+\) |
+| \(-\) | Positive | \(c_i^-\) |
+| \(-\) | Negative | \(c_i^+\), \(f_i^-\) |
+
+Crossing changes the current alcove to the correct adjacent alcove. Folding keeps the alcove unchanged and is drawn as a return arrow. The log still records a fold as one operation, so repeated state entries are expected; a fold does not add a distinct visited alcove. The UI disables all illegal choices, and the engine independently rejects them.
+
+**Positive Folding Mode** requires a reference whose crossing signs are all positive, as happens for the generated reference of a dominant weight. It permits negative crossings, but every fold is positive. With the default \(w=e\), no first fold is allowed and the Ram family contains only the reference path. Changing the actual initial direction can create branching. No Lenart–Postnikov Bruhat-cover test is used.
+
+Each selected or exported path includes the reference wall types and signs, initial/current/final alcoves, each actual affine wall and side, crossing/folding operations, one-based folding positions \(J\), and positive/negative/total fold counts. The **path coefficient** is
+
+\[
+(-1)^{f^-(p)}(q-q^{-1})^{f(p)}.
+\]
+
+This coefficient is distinct from Ram's endpoint weight \(\operatorname{wt}(p)\). Alcove positions use exact integer triangle coordinates, never pixels. Extended-affine \(\Omega\) sheets are not tracked, so the application does **not** infer or label a translation weight \(\operatorname{wt}(p)\) or final direction \(\varphi(p)\).
+
+**导出当前 Ram walk** saves the current partial or complete walk. **导出全部路径 JSON** exports every member when the family has at most 10,000 paths; larger families remain fully available through exact counting, pagination, and selected-path export. The top **导出 SVG** exports the displayed route.
+
+The browser performs all calculation locally. `npm run build` produces a complete static `dist/` directory that can be deployed directly to GitHub Pages; no backend is needed.
 
 ## References
 
@@ -104,10 +140,12 @@ alcove-walk-visualizer/
 │   ├── math/
 │   │   ├── affineA2.ts         # Geometry / Coxeter labeling / length
 │   │   ├── walk.ts             # Walk state + undo/redo
-│   │   └── folded.ts           # Weight galleries, signed folds, exact path counts
+│   │   ├── folded.ts           # Earlier weight galleries and geometric folded families
+│   │   └── ram.ts              # Ram local choices, manual execution and exact enumeration
 │   └── ui/prompt.ts            # Reusable development prompt
 ├── test/affineA2.test.mjs
 ├── test/folded.test.mjs
+├── test/ram.test.mjs
 ├── scripts/copy-static.mjs
 ├── tsconfig.json
 ├── package.json
