@@ -5,6 +5,8 @@ import {
 } from './math/affineA2.js';
 import { Walk } from './math/walk.js';
 import { PROJECT_PROMPT } from './ui/prompt.js';
+import { FoldExplorer, actionLabel } from './ui/foldExplorer.js';
+import type { FoldPath } from './math/folded.js';
 
 type Tool = 'draw' | 'pan';
 interface Camera { ox: number; oy: number; scale: number }
@@ -21,6 +23,12 @@ let spaceHeld=false;
 let drag: {id:number,x:number,y:number,ox:number,oy:number,moved:boolean}|null=null;
 let draggedRecently=false;
 let toastHandle: ReturnType<typeof setTimeout> | undefined;
+let explorer: FoldExplorer;
+
+function displayedNodes() {
+  if (explorer?.active && explorer.path) return explorer.path.nodes.map((alcove, k) => ({alcove, point: center(alcove), via: k ? explorer.path!.steps[k-1].type : null}));
+  return walk.nodes;
+}
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -49,7 +57,7 @@ function mousePoint(e: PointerEvent | MouseEvent | WheelEvent): {x:number,y:numb
 function initialCamera(w:number,h:number):Camera {return {ox:w*.36,oy:h*.86,scale:122};}
 function fitCamera(w:number,h:number,pad=105,maxScale=175):Camera {
   // Fit the whole path in either direction; preserve the actual free-click points.
-  const pts=walk.nodes.map(n=>n.point);
+  const pts=explorer?.active ? explorer.fitAlcoves.flatMap(a=>vertices(a).map(toCartesian)) : walk.nodes.map(n=>n.point);
   let minU=Infinity,maxU=-Infinity,minV=Infinity,maxV=-Infinity;
   for(const p of pts){minU=Math.min(minU,p.u);maxU=Math.max(maxU,p.u);minV=Math.min(minV,p.v);maxV=Math.max(maxV,p.v);}
   const rangeU=Math.max(maxU-minU,1.9),rangeV=Math.max(maxV-minV,1.9);
@@ -81,8 +89,9 @@ function visibleAlcoves(w:number,h:number,cam:Camera):Alcove[] {
   return tiles;
 }
 function nodeSVG(cam:Camera,w:number,h:number):string {
+  const nodes=displayedNodes(), current=nodes[nodes.length-1].alcove, steps=nodes.length-1;
   const allowed=new Map<string,WallType>();
-  for(const edge of edges(walk.current))allowed.set(alcoveKey(edge.adjacent),edge.type);
+  if(!explorer?.active)for(const edge of edges(walk.current))allowed.set(alcoveKey(edge.adjacent),edge.type);
   const visible=visibleAlcoves(w,h,cam);
   const uniqueEdges=new Map<string,Edge>();
   const bg:string[]=[];
@@ -91,7 +100,8 @@ function nodeSVG(cam:Camera,w:number,h:number):string {
     const key=alcoveKey(a),poly=polygonPoints(a,cam);
     if(key==='0,0,L')bg.push(`<polygon points="${poly}" fill="#f5d67c" fill-opacity="0.68"/>`);
     if(allowed.has(key))bg.push(`<polygon points="${poly}" fill="#cddfcd" fill-opacity="0.38"/>`);
-    if(key===alcoveKey(walk.current) && walk.steps>0)bg.push(`<polygon points="${poly}" fill="#cfddd0" fill-opacity="0.45"/>`);
+    if(key===alcoveKey(current) && steps>0)bg.push(`<polygon points="${poly}" fill="#cfddd0" fill-opacity="0.45"/>`);
+    if(explorer?.active && explorer.gallery && key===alcoveKey(explorer.gallery.target))bg.push(`<polygon points="${poly}" fill="#c7b6e4" fill-opacity="0.65" stroke="#8b70b1" stroke-width="2"/>`);
     hits.push(`<polygon points="${poly}" data-alcove="${key}" fill="transparent" stroke="none" aria-label="alcove ${key}"/>`);
     for(const e of edges(a))if(!uniqueEdges.has(edgeKey(e)))uniqueEdges.set(edgeKey(e),e);
   }
@@ -113,55 +123,92 @@ function nodeSVG(cam:Camera,w:number,h:number):string {
   const centroid=scenePoint(center(A0),cam);
   const tags=`<text x="${n(centroid.x-12)}" y="${n(centroid.y-20)}" font-family="Georgia,serif" font-style="italic" font-size="19" fill="#9e8142" text-anchor="middle">A₀</text>`;
   const route:string[]=[];
-  for(let k=1;k<walk.nodes.length;k++){
-    const a=scenePoint(walk.nodes[k-1].point,cam),b=scenePoint(walk.nodes[k].point,cam);
+  if(explorer?.active && explorer.path && explorer.reference && explorer.gallery) {
+    route.push(foldedRouteSVG(explorer.reference,cam,'#7692ad',false,true));
+    if(explorer.overlay)for(const item of explorer.page)route.push(foldedRouteSVG(item.path,cam,'#9b80b1',false));
+    route.push(foldedRouteSVG(explorer.path,cam,'#303834',true));
+    const target=scenePoint(center(explorer.gallery.target),cam);
+    route.push(`<text x="${n(target.x)}" y="${n(target.y+30)}" text-anchor="middle" font-size="12" font-family="Georgia,serif" fill="#735295" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">A₀ − λ</text>`);
+  } else {
+  for(let k=1;k<nodes.length;k++){
+    const a=scenePoint(nodes[k-1].point,cam),b=scenePoint(nodes[k].point,cam);
     const len=Math.hypot(b.x-a.x,b.y-a.y);if(len<0.01)continue;
     const margin=Math.min(16,len*.25);
     const ux=(b.x-a.x)/len,uy=(b.y-a.y)/len;
     route.push(`<path d="M ${n(a.x+ux*margin)} ${n(a.y+uy*margin)} L ${n(b.x-ux*margin)} ${n(b.y-uy*margin)}" fill="none" stroke="#303834" stroke-width="2.65" stroke-linecap="round" marker-end="url(#walk-arrow)"/>`);
   }
   // Draw nodes *after* the route; number is legible even after crossing.
-  for(let k=0;k<walk.nodes.length;k++){
-    const p=scenePoint(walk.nodes[k].point,cam),start=k===0,current=k===walk.steps;
+  for(let k=0;k<nodes.length;k++){
+    const p=scenePoint(nodes[k].point,cam),start=k===0,current=k===steps;
     const fill=start?'#dfb453':'#343d38';
     route.push(`<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${current?14:12.7}" fill="#fffefa" fill-opacity=".93"/>`);
     route.push(`<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${current?10.7:9.7}" fill="${fill}" stroke="${current?'#fff':fill}" stroke-width="1"/>`);
     route.push(`<text x="${n(p.x)}" y="${n(p.y+.8)}" dominant-baseline="middle" text-anchor="middle" font-family="'DM Sans',sans-serif" font-weight="700" font-size="${k>=100?7:k>=10?9:10}" fill="white">${k}</text>`);
   }
-  return `<defs><marker id="walk-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#303834"/></marker></defs><rect width="${w}" height="${h}" fill="#fbfaf7"/><g>${bg.join('')}</g><g>${grid.join('')}</g><g>${fundamental}${tags}</g><g class="hit-regions">${hits.join('')}</g><g pointer-events="none">${route.join('')}</g>`;
+  }
+  return `<defs><marker id="walk-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#303834"/></marker><marker id="fold-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a3558b"/></marker></defs><rect width="${w}" height="${h}" fill="#fbfaf7"/><g>${bg.join('')}</g><g>${grid.join('')}</g><g>${fundamental}${tags}</g><g class="hit-regions">${hits.join('')}</g><g pointer-events="none">${route.join('')}</g>`;
+}
+function foldedRouteSVG(path:FoldPath,cam:Camera,color:string,selected:boolean,dashed=false):string {
+  const parts:string[]=[];
+  for(const step of path.steps){
+    const a=scenePoint(center(step.from),cam),b=scenePoint(center(step.to),cam);
+    let d:string;
+    if(step.kind==='fold') {
+      const mid=scenePoint(toCartesian({x:(step.wall.start.x+step.wall.end.x)/2,y:(step.wall.start.y+step.wall.end.y)/2}),cam);
+      const dx=mid.x-a.x,dy=mid.y-a.y,len=Math.hypot(dx,dy)||1;
+      const offset=Math.min(6,cam.scale*.035),px=-dy/len*offset,py=dx/len*offset;
+      d=`M ${n(a.x+px)} ${n(a.y+py)} Q ${n(mid.x+px)} ${n(mid.y+py)} ${n(mid.x)} ${n(mid.y)} Q ${n(mid.x-px)} ${n(mid.y-py)} ${n(a.x-px)} ${n(a.y-py)}`;
+      if(selected)parts.push(`<circle cx="${n(mid.x)}" cy="${n(mid.y)}" r="4" fill="#a3558b"/><text x="${n(mid.x+8)}" y="${n(mid.y-6)}" font-size="10" fill="#93487c" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">${step.index}↶${step.sign>0?'+':'−'}</text>`);
+    } else d=`M ${n(a.x)} ${n(a.y)} L ${n(b.x)} ${n(b.y)}`;
+    parts.push(`<path d="${d}" fill="none" stroke="${selected&&step.kind==='fold'?'#a3558b':color}" stroke-width="${selected?2.5:dashed?2:1.5}" stroke-opacity="${selected?1:dashed?.75:.22}"${dashed?' stroke-dasharray="6 5"':''}${selected?` marker-end="url(#${step.kind==='fold'?'fold-arrow':'walk-arrow'})"`:''}/>`);
+    if(selected && step.kind==='cross')parts.push(`<text x="${n((a.x+b.x)/2+6)}" y="${n((a.y+b.y)/2-5)}" font-size="10" fill="#303834" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">${step.index}</text>`);
+  }
+  if(selected) {
+    const start=scenePoint(center(A0),cam),end=scenePoint(center(path.nodes[path.nodes.length-1]),cam);
+    parts.push(`<circle cx="${n(start.x)}" cy="${n(start.y)}" r="6" fill="#dfb453" stroke="#fffefa" stroke-width="2"/><circle cx="${n(end.x)}" cy="${n(end.y)}" r="5" fill="#303834" stroke="#fffefa" stroke-width="2"/>`);
+  }
+  return parts.join('');
 }
 function render():void {
   const {w,h}=dims();
   if(!cameraReady){camera=initialCamera(w,h);cameraReady=true;}
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   svg.innerHTML=nodeSVG(camera,w,h);
-  $('step-count').textContent=String(walk.steps);
-  const length=coxeterLength(walk.current);
+  const nodes=displayedNodes(),steps=nodes.length-1,current=nodes[steps].alcove;
+  $('step-count').textContent=String(steps);
+  const length=coxeterLength(current);
   $('length-count').textContent=String(length);
-  $('unique-count').textContent=String(walk.distinct);
-  const word=walk.word;
+  $('unique-count').textContent=String(new Set(nodes.map(nd=>alcoveKey(nd.alcove))).size);
+  const word=explorer?.active?explorer.gallery!.word:walk.word;
   const chips=$('word-chips');
-  chips.innerHTML=word.length?word.map(t=>`<span class="word-chip s${t}">s${SUB[t]}</span>`).join(''):'<span class="empty-word">e</span>';
+  chips.innerHTML=explorer?.active?`<span class="fold-action-word">${actionLabel(explorer.path!)}</span>`:word.length?word.map(t=>`<span class="word-chip s${t}">s${SUB[t]}</span>`).join(''):'<span class="empty-word">e</span>';
   const badge=$('reduced-badge');
-  const reduced=walk.steps===length;
-  badge.textContent=reduced?'约化路线':'非约化路线';
+  const reduced=steps===length;
+  badge.textContent=explorer?.active && explorer.path!.folds?`${explorer.path!.folds} 次折叠`:reduced?'约化路线':'非约化路线';
   badge.classList.toggle('not-reduced',!reduced);
-  $('endpoint-label').textContent=`终点 A${SUB.length?toSubscript(walk.steps):walk.steps}`;
-  $('undo-btn').toggleAttribute('disabled',!walk.canUndo);
-  $('redo-btn').toggleAttribute('disabled',!walk.canRedo);
-  $('clear-btn').toggleAttribute('disabled',walk.steps===0);
+  $('endpoint-label').textContent=explorer?.active?`终点 ${alcoveKey(current)}`:`终点 A${toSubscript(steps)}`;
+  $('undo-btn').toggleAttribute('disabled',explorer?.active||!walk.canUndo);
+  $('redo-btn').toggleAttribute('disabled',explorer?.active||!walk.canRedo);
+  $('clear-btn').toggleAttribute('disabled',explorer?.active||walk.steps===0);
   $('zoom-label').textContent=`${Math.round(camera.scale/122*100)}%`;
-  $('canvas-footnote').textContent=`已记录 ${walk.steps} 步 · 点击浅绿色相邻 alcove 继续，点击记录可定位`;
+  $('canvas-footnote').textContent=explorer?.active?'虚线：参考路径 · 紫色回环：折叠 · 淡线：本页路径 · 点击记录定位':`已记录 ${walk.steps} 步 · 点击浅绿色相邻 alcove 继续，点击记录可定位`;
+  $('drawing-status').textContent=explorer?.active?'折叠路径浏览':tool==='pan'?'平移模式':'打点模式';
+  document.querySelector('.canvas-heading h1')!.textContent=explorer?.active?'Weight → reduced path → folded walks':'从 A₀ 出发，点击相邻 alcove';
+  document.querySelector('.canvas-heading p')!.textContent=explorer?.active?'紫色 alcove 是 A₀ − λ；折叠后的终点可以不同。':'沿着三色墙，画出你的路线。';
+  const live=document.querySelector('.live-dot')!;live.innerHTML=`<i></i>${explorer?.active?'折叠路径':'自由绘制'}`;
   renderLog();
 }
 function toSubscript(n:number):string {return String(n).replace(/[0-9]/g,d=>'₀₁₂₃₄₅₆₇₈₉'[Number(d)]);}
 function renderLog():void {
   const html:string[]=[];
-  for(let k=0;k<walk.nodes.length;k++){
-    const nd=walk.nodes[k];
+  const nodes=displayedNodes();
+  for(let k=0;k<nodes.length;k++){
+    const nd=nodes[k];
     if(k===0){html.push('<li data-step="0"><span class="log-index">0</span><span class="log-main"><span class="log-title">A₀</span><br/><span class="log-subtitle">Fundamental alcove</span></span><span class="log-type">起点</span></li>');continue;}
-    const previous=walk.nodes[k-1].alcove;
-    const edge=crossedWall(previous,nd.alcove);
+    const previous=nodes[k-1].alcove;
+    const foldStep=explorer?.active?explorer.path!.steps[k-1]:null;
+    const edge=foldStep?.wall??crossedWall(previous,nd.alcove);
+    if(foldStep){html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">${foldStep.kind==='fold'?'↶ 折叠 · 留在当前 alcove':'→ 穿墙'} (${foldStep.sign>0?'+':'−'})</span><br/><span class="log-subtitle">${edge?.equation} · ${alcoveKey(nd.alcove)}</span></span><span class="log-type t${nd.via}">${foldStep.kind==='fold'?'f':'c'}${SUB[nd.via!]}</span></li>`);continue;}
     html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">A${toSubscript(k-1)} → A${toSubscript(k)}</span><br/><span class="log-subtitle">${edge?.equation ?? '—'} · ${alcoveKey(nd.alcove)}</span></span><span class="log-type t${nd.via}">s${SUB[nd.via!]}</span></li>`);
   }
   $('walk-log').innerHTML=html.join('');
@@ -172,18 +219,19 @@ function setTool(next:Tool):void {
   tool=next;
   for(const b of document.querySelectorAll<HTMLButtonElement>('[data-tool]'))b.classList.toggle('selected',b.dataset.tool===next);
   svg.classList.toggle('pan-cursor',next==='pan');
-  $('drawing-status').textContent=next==='pan'?'平移模式':'打点模式';
+  $('drawing-status').textContent=explorer?.active?'折叠路径浏览':next==='pan'?'平移模式':'打点模式';
 }
 function setZoom(factor:number,px?:number,py?:number):void {
   const {w,h}=dims(),x=px??w/2,y=py??h/2;
   const world=cartesianAt(x,y,camera);
-  const scale=clamp(camera.scale*factor,25,400);
+  const scale=clamp(camera.scale*factor,3,400);
   camera={scale,ox:x-world.u*scale,oy:y-world.v*scale};update();
 }
 function recenter():void {const {w,h}=dims();camera=initialCamera(w,h);update();}
 function fitPath():void {const {w,h}=dims();camera=fitCamera(w,h);update();}
 function onAlcoveClick(key:string,e:MouseEvent):void {
   if(tool!=='draw'||spaceHeld||draggedRecently)return;
+  if(explorer.active){showToast('正在浏览折叠路径；点击「返回自由绘制」可继续手动画图');return;}
   const a=fromKey(key),edge=crossedWall(walk.current,a);
   if(!edge){showToast('只能进入与当前 alcove 共边的邻居');return;}
   const pixel=mousePoint(e);
@@ -192,7 +240,7 @@ function onAlcoveClick(key:string,e:MouseEvent):void {
   catch(error){showToast((error as Error).message);}
 }
 function loadWord(word:readonly WallType[]):void {
-  try{walk.setWord(word);fitPath();showToast(`已绘制 ${word.length} 步：${formatWord(word)}`);}
+  try{walk.setWord(word);explorer.deactivate();fitPath();showToast(`已绘制 ${word.length} 步：${formatWord(word)}`);}
   catch(err){showToast((err as Error).message);}
 }
 async function copy(text:string):Promise<void>{
@@ -220,7 +268,9 @@ function restore():void {
     if(data?.camera && ['ox','oy','scale'].every(k=>Number.isFinite(data.camera[k])) && data.camera.scale>=3 && data.camera.scale<=500){camera=data.camera;cameraReady=true;}
   }catch{/* Ignore malformed local storage */}
 }
+explorer=new FoldExplorer(fit=>{if(fit)fitPath();else update();});
 restore();
+explorer.restore();
 ($('snap-checkbox') as HTMLInputElement).checked=snap;
 // Mouse / pen / touch interaction.
 svg.addEventListener('click',e=>{
@@ -231,7 +281,7 @@ svg.addEventListener('click',e=>{
 });
 svg.addEventListener('pointerdown',e=>{
   const hit=(e.target as Element).closest('[data-alcove]');
-  if(tool==='pan'||spaceHeld||!hit){
+  if(explorer.active||tool==='pan'||spaceHeld||!hit){
     drag={id:e.pointerId,x:e.clientX,y:e.clientY,ox:camera.ox,oy:camera.oy,moved:false};
     svg.setPointerCapture(e.pointerId);svg.classList.add('is-dragging');
   }
@@ -266,17 +316,17 @@ $('load-example').addEventListener('click',()=>{
   if(!input.value){showToast('请先选择示例路线');return;}
   loadWord(input.value.split(',').map(x=>Number(x) as WallType));
 });
-$('copy-word').addEventListener('click',()=>void copy(formatWord(walk.word)));
+$('copy-word').addEventListener('click',()=>void copy(explorer.active?actionLabel(explorer.path!):formatWord(walk.word)));
 $('prompt-btn').addEventListener('click',()=>void copy(PROJECT_PROMPT));
 $('export-btn').addEventListener('click',exportSVG);
 $('walk-log').addEventListener('click',e=>{
   const item=(e.target as Element).closest<HTMLElement>('[data-step]');
   if(!item)return;
-  const idx=Number(item.dataset.step),node=walk.nodes[idx];
+  const idx=Number(item.dataset.step),node=displayedNodes()[idx];
   if(!node)return;
   const {w,h}=dims();camera.ox=w/2-camera.scale*node.point.u;camera.oy=h/2-camera.scale*node.point.v;update();
 });
-$('export-json').addEventListener('click',()=>{download('alcove-path-A2.json',JSON.stringify({rootSystem:'A2_affine',convention:'right action',nodes:walk.nodes,word:walk.word},null,2),'application/json;charset=utf-8');showToast('已导出 JSON');});
+$('export-json').addEventListener('click',()=>{download('alcove-path-A2.json',JSON.stringify(explorer.exportData()??{rootSystem:'A2_affine',convention:'right action',nodes:walk.nodes,word:walk.word},null,2),'application/json;charset=utf-8');showToast('已导出 JSON');});
 const dialog=$('help-dialog') as HTMLDialogElement;
 $('help-btn').addEventListener('click',()=>dialog.showModal());
 $('help-close').addEventListener('click',()=>dialog.close());
@@ -284,6 +334,7 @@ $('help-ok').addEventListener('click',()=>dialog.close());
 document.addEventListener('keydown',e=>{
   if(e.code==='Space'&&!(e.target instanceof HTMLInputElement)&&!(e.target instanceof HTMLSelectElement)) { e.preventDefault();spaceHeld=true;svg.classList.add('pan-cursor'); }
   if(e.ctrlKey||e.metaKey){
+    if(explorer.active||e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement)return;
     if(e.key.toLowerCase()==='z') {e.preventDefault();if(e.shiftKey){if(walk.redo())update();}else{if(walk.undo())update();}}
     if(e.key.toLowerCase()==='y'){e.preventDefault();if(walk.redo())update();}
     return;

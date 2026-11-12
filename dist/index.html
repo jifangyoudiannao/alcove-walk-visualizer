@@ -40,6 +40,39 @@
 
       <aside class="sidebar">
         <div class="sidebar-header"><div class="overline">PATH BUILDER</div><div class="sidebar-title-row"><h2>你的 Alcove walk</h2><span class="live-dot"><i></i>自由绘制</span></div></div>
+        <section class="side-section weight-explorer" aria-labelledby="weight-heading">
+          <div class="side-label-row"><h3 id="weight-heading">Weight → 折叠路径</h3><span class="feature-tag">NEW</span></div>
+          <p class="weight-equation">λ = aω₁ + bω₂ <span>终点 A₀ − λ</span></p>
+          <form id="weight-form" class="weight-form">
+            <label for="weight-a">a<input id="weight-a" type="number" value="1" step="1" required aria-label="基本权 ω₁ 的整数系数 a" /></label>
+            <label for="weight-b">b<input id="weight-b" type="number" value="1" step="1" required aria-label="基本权 ω₂ 的整数系数 b" /></label>
+            <button type="submit" class="dark-button">生成路径</button>
+          </form>
+          <label class="fold-rule-label" for="fold-rule">折叠规则</label>
+          <select id="fold-rule" class="fold-rule-select">
+            <option value="all">每墙均可折叠</option>
+            <option value="positive">仅正折叠</option>
+            <option value="ram">Ram §3.2</option>
+          </select>
+          <p id="fold-rule-note" class="hint fold-rule-note">固定一条 reduced path 的墙类型序列，每一步选择穿墙或折回当前 alcove；折叠后的终点可以不同。</p>
+          <p class="hint weight-limit">a、b 可为正、负或零整数；参考路径最多 60 步。</p>
+          <p id="weight-error" class="weight-error" role="alert"></p>
+          <div id="fold-results" hidden>
+            <div class="reference-summary">
+              <p id="weight-target" class="weight-target"></p>
+              <p id="reference-word" class="reference-word"></p>
+              <button id="show-reference" type="button" class="wide-outline">查看 reduced path</button>
+            </div>
+            <div class="family-total"><span>符合规则的路径</span><strong id="family-count">0</strong></div>
+            <label class="switch-line family-overlay"><span>叠加本页路径</span><input type="checkbox" id="show-family-overlay" checked /></label>
+            <p id="family-page-info" class="hint" role="status" aria-live="polite"></p>
+            <div id="family-list" class="family-list" aria-label="折叠路径列表"></div>
+            <div class="family-pagination"><button id="family-prev" type="button">← 上一页</button><button id="family-next" type="button">下一页 →</button></div>
+            <form id="family-jump-form" class="family-jump-form"><label for="family-jump">跳至路径</label><input id="family-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="跳转到路径编号，从 1 开始" /><button type="submit">跳转</button></form>
+            <p class="hint family-pagination-note">总数精确计算，每页 8 条；按需加载，不截断路径集合。</p>
+            <button id="leave-family" type="button" class="wide-outline">返回自由绘制</button>
+          </div>
+        </section>
         <div class="stats"><div><strong id="step-count">0</strong><span>行走步数</span></div><div><strong id="length-count">0</strong><span>最短距离</span></div><div><strong id="unique-count">1</strong><span>不同 alcove</span></div></div>
 
         <section class="side-section"><div class="side-label-row"><h3>当前反射字</h3><span class="metric-tag" id="reduced-badge">约化路线</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">终点 A₀</span><button class="link-action" id="copy-word">▣ 复制反射字</button></div><div class="triple-buttons"><button id="undo-btn">↶ 撤销</button><button id="redo-btn">↷ 重做</button><button id="clear-btn">◴ 清空</button></div><p class="hint">允许回走；回走会保留为新的一步。</p></section>
@@ -51,7 +84,7 @@
     <footer class="site-footer"><span>万格亲而画，为思考留迹。</span><span>Type A₂ · Coxeter complex · 可本地运行</span></footer>
   </div>
   <div class="toast" role="status" id="toast" aria-live="polite"></div>
-  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
+  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p><strong>Weight 与折叠：</strong>输入 λ = aω₁ + bω₂，得到从 A₀ 到 A₀ − λ 的一条 reduced path。折叠会触及当前墙并返回同一个 alcove；后续步骤仍按原墙类型序列，在当前 alcove 寻找下一面墙。折叠路径不必结束于 A₀ − λ。</p><p><strong>规则区别：</strong>“每墙均可折叠”允许所有穿墙 / 折叠选择；“仅正折叠”要求折叠留在墙的正侧。Ram §3.2 的 Theorem 3.3 要求第 k 步的折叠符号等于参考穿墙符号 εₖ；以 A₀ 为起点（w = e）并使用同一参考路径时，只有原始不折叠路径满足该条件。这里没有加入 Lenart–Postnikov 的 Bruhat cover 条件。</p><p class="source-note">折叠定义与带符号规则：<a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Arun Ram, §3.1–3.2，Theorem 3.3</a>。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
