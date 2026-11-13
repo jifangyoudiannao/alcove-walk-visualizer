@@ -17,14 +17,14 @@ function validateAlcove(alcove) {
     if (!alcove || !Number.isSafeInteger(alcove.i) || !Number.isSafeInteger(alcove.j)
         || Math.abs(alcove.i) > bound || Math.abs(alcove.j) > bound
         || (alcove.half !== 'L' && alcove.half !== 'U')) {
-        throw new Error('无效的起始 alcove 坐标');
+        throw new Error('Invalid starting-alcove coordinates');
     }
 }
 function negate(sign) { return sign === 1 ? -1 : 1; }
 function wallOf(alcove, type) {
     const wall = edges(alcove).find(edge => edge.type === type);
     if (!wall)
-        throw new Error('墙类型必须为 0、1 或 2');
+        throw new Error('Wall type must be 0, 1, or 2');
     return wall;
 }
 /**
@@ -39,13 +39,13 @@ function actualSide(alcove, wall) {
         : wall.start.y === wall.end.y ? y3 - 3 * wall.start.y
             : x3 + y3 - 3 * (wall.start.x + wall.start.y);
     if (signedDistance3 === 0)
-        throw new Error('alcove 内点不能位于墙上');
+        throw new Error('An interior alcove point cannot lie on a wall');
     return signedDistance3 > 0 ? 1 : -1;
 }
 /** Make or verify a reduced reference gallery to A0 + lambda. */
 export function ramReference(weight, word) {
     if (!weight || !Number.isSafeInteger(weight.a) || !Number.isSafeInteger(weight.b)) {
-        throw new Error('weight 的系数 a、b 必须是安全范围内的整数');
+        throw new Error('Weight coefficients a and b must be safe integers');
     }
     // The old explorer deliberately uses A0 - lambda. Negating here preserves
     // that feature while giving the independent Ram mode its plus convention.
@@ -55,9 +55,9 @@ export function ramReference(weight, word) {
         word: word === undefined ? [...generated.word] : [...word], signs: [], nodes: [{ ...A0 }],
     };
     if (reference.word.length > MAX_GALLERY_LENGTH)
-        throw new Error(`参考路径最多支持 ${MAX_GALLERY_LENGTH} 步`);
+        throw new Error(`Reference paths support at most ${MAX_GALLERY_LENGTH} steps`);
     if (reference.word.some(type => type !== 0 && type !== 1 && type !== 2))
-        throw new Error('参考墙类型必须为 0、1 或 2');
+        throw new Error('Reference wall types must be 0, 1, or 2');
     let current = { ...A0 };
     for (const type of reference.word) {
         const wall = wallOf(current, type);
@@ -66,14 +66,14 @@ export function ramReference(weight, word) {
         reference.nodes.push(current);
     }
     if (coxeterLength(current) !== reference.word.length)
-        throw new Error('参考路径必须是 reduced path；请去掉回走或改用自动生成');
+        throw new Error('The reference path must be reduced; remove backtracking or use automatic generation');
     if (!sameAlcove(current, reference.target))
-        throw new Error('参考反射字的终点不是指定的 A₀ + λ');
+        throw new Error('The reference word does not end at the specified A₀ + λ');
     return reference;
 }
 function checkedReference(reference, positiveOnly) {
     if (!reference || !Array.isArray(reference.word) || !Array.isArray(reference.signs) || !Array.isArray(reference.nodes)) {
-        throw new Error('参考路径数据不完整');
+        throw new Error('Reference-path data are incomplete');
     }
     const expected = ramReference(reference.weight, reference.word);
     if (!reference.target || !sameAlcove(expected.target, reference.target)
@@ -81,10 +81,10 @@ function checkedReference(reference, positiveOnly) {
         || reference.signs.length !== expected.signs.length
         || reference.signs.some((sign, k) => sign !== expected.signs[k])
         || reference.nodes.some((node, k) => !node || !sameAlcove(node, expected.nodes[k]))) {
-        throw new Error('参考路径的几何位置或 crossing signs 不一致');
+        throw new Error('Reference-path geometry or crossing signs are inconsistent');
     }
     if (positiveOnly && expected.signs.some(sign => sign !== 1)) {
-        throw new Error('Positive Folding Mode 要求全部参考 crossing 为 positive；请选择 dominant weight');
+        throw new Error('Positive Folding Mode requires all reference crossings to be positive; choose a dominant weight');
     }
     return expected;
 }
@@ -92,11 +92,11 @@ function checkedReference(reference, positiveOnly) {
 export function ramChoices(reference, position, current) {
     validateAlcove(current);
     if (!Number.isInteger(position) || position < 0 || position >= reference.word.length) {
-        throw new Error('参考步骤编号超出范围');
+        throw new Error('Reference-step index is out of range');
     }
     const referenceSign = reference.signs[position];
     if (referenceSign !== 1 && referenceSign !== -1)
-        throw new Error('参考 crossing sign 必须为 + 或 −');
+        throw new Error('The reference crossing sign must be + or −');
     const wall = wallOf(current, reference.word[position]);
     const side = actualSide(current, wall);
     // If side = epsilon, the candidate fold f_i^epsilon is geometrically
@@ -108,11 +108,11 @@ function emptyPath(start) {
 }
 function appendAction(reference, path, kind) {
     if (kind !== 'cross' && kind !== 'fold')
-        throw new Error('操作必须是 crossing 或 folding');
+        throw new Error('The action must be crossing or folding');
     const position = path.steps.length, current = path.nodes[path.nodes.length - 1];
     const choice = ramChoices(reference, position, current);
     if (kind === 'fold' && !choice.canFold)
-        throw new Error('当前所在侧不允许此 Ram fold；本步必须 crossing');
+        throw new Error('This Ram fold is not allowed on the current side; crossing is required');
     const next = kind === 'fold' ? copyAlcove(current) : copyAlcove(choice.wall.adjacent);
     const sign = kind === 'fold' ? choice.side : choice.crossingSign;
     const step = {
@@ -150,7 +150,7 @@ export class RamWalk {
     get next() { return this.complete ? null : ramChoices(this.reference, this.position, this.current); }
     step(kind) {
         if (this.complete)
-            throw new Error('参考路径已经完成；请撤销或重新开始');
+            throw new Error('The reference path is complete; undo a step or reset');
         return appendAction(this.reference, this.state, kind);
     }
     undo() {
@@ -163,7 +163,7 @@ export class RamWalk {
     /** Atomic replay: an invalid action leaves the previous manual walk intact. */
     loadActions(kinds) {
         if (!Array.isArray(kinds) || kinds.length > this.reference.word.length)
-            throw new Error('操作序列超过参考路径长度');
+            throw new Error('The action sequence exceeds the reference-path length');
         const next = emptyPath(this.start);
         for (const kind of kinds)
             appendAction(this.reference, next, kind);
@@ -204,7 +204,7 @@ export class RamFamily {
     }
     pathAt(index) {
         if (typeof index !== 'bigint' || index < 0n || index >= this.total)
-            throw new Error('Ram 路径编号超出范围');
+            throw new Error('Ram path index is out of range');
         const path = emptyPath(this.start);
         for (let position = 0; position < this.reference.word.length; position++) {
             const current = path.nodes[path.nodes.length - 1];
@@ -248,7 +248,7 @@ export function describeRamPath(reference, start, path) {
         // the Omega sheet for general P/Q weights. Do not fabricate wt(p), phi(p).
         algebraicEndpoint: {
             implemented: false,
-            reason: '未追踪 extended affine Weyl group 的 Ω 分层；仅输出精确 alcove，不推测 Ram wt(p) 或 φ(p)。',
+            reason: 'Extended affine Weyl group Ω sheets are not tracked. Only the exact alcove is reported; Ram wt(p) and φ(p) are not inferred.',
         },
     };
 }

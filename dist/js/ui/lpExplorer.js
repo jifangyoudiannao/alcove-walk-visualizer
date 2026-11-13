@@ -12,7 +12,7 @@ function termHTML(term, w) {
     const parts = [];
     for (const [coefficient, basis] of [[term.mu.a, 'ω₁'], [term.mu.b, 'ω₂']]) {
         if (!Number.isSafeInteger(coefficient))
-            throw new Error('K-theory 权重必须是精确整数');
+            throw new Error('K-theory weights must be exact integers');
         if (!coefficient)
             continue;
         const magnitude = Math.abs(coefficient);
@@ -30,7 +30,7 @@ const initialPath = () => ({
 function integer(id) {
     const text = field(id).value.trim();
     if (!/^[+-]?\d+$/.test(text) || !Number.isSafeInteger(Number(text)))
-        throw new Error('a、b 必须是安全范围内的整数。');
+        throw new Error('a and b must be safe integers.');
     return Number(text);
 }
 function downloadJSON(name, value) {
@@ -106,7 +106,7 @@ export class LPExplorer {
             this.attempt(() => {
                 const text = field('lp-jump').value.trim();
                 if (!/^\d+$/.test(text))
-                    throw new Error('请输入从 1 开始的路径编号。');
+                    throw new Error('Enter a path number starting at 1.');
                 this.selectPath(BigInt(text) - 1n);
             });
         });
@@ -118,9 +118,9 @@ export class LPExplorer {
         el('lp-export-all').addEventListener('click', () => this.attempt(() => {
             this.requireConfigured();
             if (!this.family)
-                throw new Error('请先枚举 LP foldings。');
+                throw new Error('Enumerate the LP foldings first.');
             if (this.family.total > 10000n)
-                throw new Error('整批导出最多 10,000 条；全部路径仍可分页浏览及逐条导出。');
+                throw new Error('Bulk export supports up to 10,000 paths; all paths remain available through pagination and individual export.');
             const paths = [];
             for (let i = 0n; i < this.family.total; i++)
                 paths.push({ index: String(i + 1n), ...describeLPPath(this.reference, this.u, this.family.pathAt(i)) });
@@ -157,7 +157,7 @@ export class LPExplorer {
         const reference = lpReference(weight, word);
         const input = LP_INPUTS.find(item => item.id === select('lp-u').value);
         if (!input)
-            throw new Error('请选择 S₃ 中的 Schubert input u。');
+            throw new Error('Choose a Schubert input u in S₃.');
         const walk = new LPWalk(reference, input.permutation);
         const original = new LPWalk(reference, input.permutation);
         original.loadActions(reference.word.map(() => 'cross'));
@@ -175,9 +175,9 @@ export class LPExplorer {
     }
     requireConfigured() {
         if (!this.walk || !this.reference)
-            throw new Error('请先固定 LP 参考路径。');
+            throw new Error('Set the LP reference path first.');
         if (this.dirty)
-            throw new Error('输入已更改，请先点击「固定 LP 参考路径」。');
+            throw new Error('Inputs changed. Click “Set LP reference path” first.');
     }
     perform(kind) {
         this.attempt(() => { this.requireConfigured(); this.walk.step(kind); this.selectedIndex = null; this.changed(true); });
@@ -192,7 +192,7 @@ export class LPExplorer {
     selectPath(index) {
         this.requireConfigured();
         if (!this.family || index < 0n || index >= this.family.total)
-            throw new Error(`路径编号应介于 1 和 ${this.family?.total ?? 1} 之间。`);
+            throw new Error(`Path number must be between 1 and ${this.family?.total ?? 1}.`);
         const path = this.family.pathAt(index);
         this.walk.loadActions(path.steps.map(s => s.kind));
         this.selectedIndex = index;
@@ -210,19 +210,19 @@ export class LPExplorer {
         if (!this.walk || !this.reference)
             return;
         const ref = this.reference, { a, b } = ref.weight;
-        el('lp-reference-summary').textContent = `λ = (${a})ω₁ + (${b})ω₂ · A₀ − λ = ${alcoveKey(ref.target)} · ${ref.word.length} 步 reduced path`;
-        el('lp-reference-roots').textContent = ref.reflections.map((r, i) => `${i + 1}: β = ${r.betaSign < 0 ? '−(' : ''}${rootLabel(r.root)}${r.betaSign < 0 ? ')' : ''}, r̄ = ${permutationKey(r.finite)}`).join(' · ') || '空参考路径';
-        el('lp-current').textContent = `几何起点 A₀ · ${this.walk.complete ? '最终 alcove' : '当前 alcove'} ${alcoveKey(this.walk.current)}`;
-        el('lp-progress').textContent = this.dirty ? '设置已修改，固定参考路径后再继续。' : `已完成 ${this.walk.position} / ${ref.word.length} 步${this.selectedIndex === null ? '' : ` · 枚举路径 #${this.selectedIndex + 1n}`}`;
+        el('lp-reference-summary').textContent = `λ = (${a})ω₁ + (${b})ω₂ · A₀ − λ = ${alcoveKey(ref.target)} · ${ref.word.length}-step reduced path`;
+        el('lp-reference-roots').textContent = ref.reflections.map((r, i) => `${i + 1}: β = ${r.betaSign < 0 ? '−(' : ''}${rootLabel(r.root)}${r.betaSign < 0 ? ')' : ''}, r̄ = ${permutationKey(r.finite)}`).join(' · ') || 'Empty reference path';
+        el('lp-current').textContent = `Geometric start A₀ · ${this.walk.complete ? 'Final alcove' : 'Current alcove'} ${alcoveKey(this.walk.current)}`;
+        el('lp-progress').textContent = this.dirty ? 'Settings changed. Set the reference path to continue.' : `Completed ${this.walk.position} / ${ref.word.length} steps${this.selectedIndex === null ? '' : ` · Enumerated path #${this.selectedIndex + 1n}`}`;
         const next = this.next;
-        el('lp-next-wall').textContent = next ? `第 ${this.walk.position + 1} 步 · s${SUB[ref.word[this.walk.position]]} · ${next.wall.equation}` : '—';
-        el('lp-reference-reflection').textContent = next ? `${next.referenceReflection.label} · 原墙 ${next.referenceReflection.wall.equation} · r̄ = ${permutationKey(next.referenceReflection.finite)}` : '—';
-        el('lp-v').textContent = `v = ${permutationKey(this.walk.v)}（输入 u = ${permutationKey(this.u)}）`;
+        el('lp-next-wall').textContent = next ? `Step ${this.walk.position + 1} · s${SUB[ref.word[this.walk.position]]} · ${next.wall.equation}` : '—';
+        el('lp-reference-reflection').textContent = next ? `${next.referenceReflection.label} · Reference wall ${next.referenceReflection.wall.equation} · r̄ = ${permutationKey(next.referenceReflection.finite)}` : '—';
+        el('lp-v').textContent = `v = ${permutationKey(this.walk.v)} (input u = ${permutationKey(this.u)})`;
         el('lp-candidate').textContent = next ? `v r̄${this.walk.position + 1} = ${permutationKey(next.candidate)}` : '—';
         el('lp-lengths').textContent = next ? `ℓ(v) = ${next.length} → ℓ(v r̄) = ${next.candidateLength}` : '—';
-        el('lp-fold-reason').textContent = this.dirty ? '输入已修改，请先重新固定参考路径。' : next ? next.reason : '参考位置已全部处理。';
+        el('lp-fold-reason').textContent = this.dirty ? 'Inputs changed. Set the reference path again.' : next ? next.reason : 'All reference positions have been processed.';
         el('lp-cross').textContent = next ? `Cross · c${SUB[ref.word[this.walk.position]]}${next.crossingSign > 0 ? '⁺' : '⁻'}` : 'Cross';
-        el('lp-fold').textContent = next ? `Fold · f${SUB[ref.word[this.walk.position]]}${next.side > 0 ? '⁺' : '⁻'}${next.canFold ? '' : '（禁止）'}` : 'Fold';
+        el('lp-fold').textContent = next ? `Fold · f${SUB[ref.word[this.walk.position]]}${next.side > 0 ? '⁺' : '⁻'}${next.canFold ? '' : ' (not allowed)'}` : 'Fold';
         el('lp-cross').toggleAttribute('disabled', !next);
         el('lp-fold').toggleAttribute('disabled', !next?.canFold);
         el('lp-undo').toggleAttribute('disabled', this.dirty || !this.walk.position);
@@ -230,24 +230,24 @@ export class LPExplorer {
         el('lp-enumerate').toggleAttribute('disabled', this.dirty);
         el('lp-export-selected').toggleAttribute('disabled', this.dirty);
         el('lp-export-all').toggleAttribute('disabled', this.dirty || !this.family || this.family.total > 10000n);
-        el('lp-complete-note').textContent = this.dirty ? '当前图仍显示已固定的旧参考路径。' : this.walk.complete ? '路径已完成。最终 alcove 是几何对象；输出 w 是 Schubert 指标。' : next?.canFold ? 'Cross 改变 alcove；Fold 改变 Bruhat 元素。两种操作均占用当前参考位置。' : '本步必须 Cross；Bruhat 元素保持不变。';
+        el('lp-complete-note').textContent = this.dirty ? 'The canvas still shows the previous reference path.' : this.walk.complete ? 'Walk complete. The final alcove is geometric; output w is the Schubert index.' : next?.canFold ? 'Cross changes the alcove; Fold changes the Bruhat element. Each consumes one reference position.' : 'Cross is required at this step; the Bruhat element stays unchanged.';
         el('lp-positions').textContent = `J = {${this.path.foldingPositions.join(', ')}}`;
-        el('lp-chain').textContent = `Bruhat 链：${this.path.bruhatChain.map(permutationKey).join(' ⋗ ')}`;
-        el('lp-output-w').textContent = this.walk.complete ? `输出 Schubert 指标 w = ${permutationKey(this.path.outputW)}` : '输出 w：完成全部参考位置后确定';
+        el('lp-chain').textContent = `Bruhat chain: ${this.path.bruhatChain.map(permutationKey).join(' ⋗ ')}`;
+        el('lp-output-w').textContent = this.walk.complete ? `Output Schubert index w = ${permutationKey(this.path.outputW)}` : 'Output w: determined when all reference positions are complete';
         const data = describeLPPath(ref, this.u, this.path);
         if (this.walk.complete && data.term)
-            el('lp-term').innerHTML = `K-theory 项：${termHTML(data.term, this.path.outputW)}`;
+            el('lp-term').innerHTML = `K-theory term: ${termHTML(data.term, this.path.outputW)}`;
         else
-            el('lp-term').textContent = 'K-theory 项：当前为路径前缀，尚未完成';
+            el('lp-term').textContent = 'K-theory term: incomplete walk prefix';
         if (!this.family)
             return;
         el('lp-total').textContent = this.family.total.toLocaleString();
-        el('lp-page-info').textContent = `${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} 条 · 保留全部 J，不按 alcove 或 w 去重${this.family.total > 10000n ? ' · 整批导出上限 10,000 条' : ''}`;
+        el('lp-page-info').textContent = `${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} paths · Distinct J retained, even when alcoves or w coincide${this.family.total > 10000n ? ' · Bulk export limit: 10,000 paths' : ''}`;
         el('lp-prev').toggleAttribute('disabled', this.dirty || this.pageStart === 0n);
         el('lp-next').toggleAttribute('disabled', this.dirty || this.pageStart + PAGE_SIZE >= this.family.total);
         el('lp-list').innerHTML = this.page.map(({ index, path }) => {
             const details = describeLPPath(ref, this.u, path);
-            return `<button type="button" class="lp-card${index === this.selectedIndex ? ' selected' : ''}" data-lp-index="${index}" aria-pressed="${index === this.selectedIndex}"${this.dirty ? ' disabled' : ''}><span class="lp-card-title">#${index + 1n} · J = {${path.foldingPositions.join(', ')}}</span><span class="lp-actions">${actionLabel(path)}</span><span class="lp-endpoint">最终 alcove ${alcoveKey(path.nodes[path.nodes.length - 1])}</span><span class="lp-card-output">输出 w = ${permutationKey(path.outputW)} · ${path.bruhatChain.map(permutationKey).join(' ⋗ ')}</span><span class="lp-term">${details.term ? termHTML(details.term, path.outputW) : '—'}</span></button>`;
+            return `<button type="button" class="lp-card${index === this.selectedIndex ? ' selected' : ''}" data-lp-index="${index}" aria-pressed="${index === this.selectedIndex}"${this.dirty ? ' disabled' : ''}><span class="lp-card-title">#${index + 1n} · J = {${path.foldingPositions.join(', ')}}</span><span class="lp-actions">${actionLabel(path)}</span><span class="lp-endpoint">Final alcove ${alcoveKey(path.nodes[path.nodes.length - 1])}</span><span class="lp-card-output">Output w = ${permutationKey(path.outputW)} · ${path.bruhatChain.map(permutationKey).join(' ⋗ ')}</span><span class="lp-term">${details.term ? termHTML(details.term, path.outputW) : '—'}</span></button>`;
         }).join('');
         field('lp-jump').value = String((this.selectedIndex ?? this.pageStart) + 1n);
     }

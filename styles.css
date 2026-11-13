@@ -178,3 +178,9 @@
 .lp-rules a{display:inline-block;color:#518465;margin-top:10px}
 @media(max-width:760px){.lp-panel{padding:15px!important}.lp-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.lp-card-title{flex-wrap:wrap}.lp-panel .hint{font-size:11px}}
 @media(max-width:400px){.lp-list{grid-template-columns:1fr}}
+
+/* Keep longer English labels within the existing compact panels. */
+.canvas-footer{gap:12px}
+.canvas-footer span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.canvas-footer span:last-child{flex:none}
+.ram-step-data dt{max-width:44%}

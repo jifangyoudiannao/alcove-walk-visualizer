@@ -43,13 +43,13 @@ export class Walk {
         if (!edge)
             return false;
         if (this.nodes.length >= 501)
-            throw new Error('路线最多包含 500 步');
+            throw new Error('A walk can contain at most 500 steps');
         this.commit([...this.nodes, { alcove: { ...alcove }, point: { ...point }, via: edge.type }]);
         return true;
     }
     setWord(word) {
         if (word.length > 500)
-            throw new Error('路线最多包含 500 步');
+            throw new Error('A walk can contain at most 500 steps');
         const result = [initialNode()];
         let a = A0;
         for (const s of word) {

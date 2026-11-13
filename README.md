@@ -1,6 +1,6 @@
 # Alcove Studio · A₂
 
-**[在线使用 / Open the live app](https://jifangyoudiannao.github.io/alcove-walk-visualizer/)**
+**[Open the live app](https://jifangyoudiannao.github.io/alcove-walk-visualizer/)**
 
 An interactive alcove walk visualizer for the affine Coxeter complex of type \(\widetilde{A}_2\). Built with **TypeScript + native SVG + CSS**, without a runtime UI dependency.
 
@@ -59,7 +59,7 @@ A gallery is reduced precisely when its number of steps is the Coxeter length of
 
 ## Weight input and folded paths
 
-In the new **Weight → 折叠路径** panel, enter the two fundamental-weight coefficients:
+In the new **Weight → Folded Walks** panel, enter the two fundamental-weight coefficients:
 
 \[
 \lambda=a\omega_1+b\omega_2,\qquad a,b\in\mathbb Z.
@@ -81,22 +81,22 @@ The rule selector distinguishes three different families:
 
 | Rule | Allowed folds |
 | --- | --- |
-| 每墙均可折叠 / All geometric folds | Every step permits either crossing or folding. This follows the geometric definition supplied for this feature; there are exactly \(2^m\) action sequences. |
-| 仅正折叠 / Positive folds | A fold must stay on the positive side of its wall. For walls \(x=n\), \(y=n\), and \(x+y=n\), the positive side uses \(>n\). |
+| All geometric folds | Every step permits either crossing or folding. This follows the geometric definition supplied for this feature; there are exactly \(2^m\) action sequences. |
+| Positive folds only | A fold must stay on the positive side of its wall. For walls \(x=n\), \(y=n\), and \(x+y=n\), the positive side uses \(>n\). |
 | Ram §3.2 | As in Theorem 3.3, the fold sign at step \(k\) must equal the reference crossing sign \(\epsilon_k\). Equivalently, the crossing available from the current alcove must have sign \(-\epsilon_k\). |
 
 Here a positive crossing goes from the negative side to the positive side; a positive fold stays on the positive side. For Ram's rule, this older weight-explorer panel fixes the initial alcove to \(A_0\), corresponding to \(w=e\). The reference gallery's first fold would violate the required sign, so **only the original nonfolded gallery remains**. The separate Ram Alcove Walk Mode below allows a nonidentity initial direction. The unrestricted and positive-fold families in this older panel are not presented as the terms of that theorem, and no Lenart–Postnikov Bruhat-cover admissibility condition is imposed.
 
-Paths are indexed by their complete crossing/folding choices, with crossing branches first. Different paths are retained even if their endpoints coincide. Counts use exact integers; eight paths are loaded per page, and **跳至路径** accepts a one-based path number for direct navigation. The full family is accessible without a truncation cap. The overlay shows the current page, while a selected path can be inspected step by step. **查看 reduced path** restores the reference view; **返回自由绘制** leaves the explorer.
+Paths are indexed by their complete crossing/folding choices, with crossing branches first. Different paths are retained even if their endpoints coincide. Counts use exact integers; eight paths are loaded per page, and **Go to walk** accepts a one-based path number for direct navigation. The full family is accessible without a truncation cap. The overlay shows the current page, while a selected path can be inspected step by step. **View reduced path** restores the reference view; **Return to Free Drawing** leaves the explorer.
 
 ## Ram Alcove Walk Mode
 
-Select **Ram Alcove Walk Mode** above the sidebar controls. This mode has independent path state; the original drawing mode and its undo/redo history remain available through **自由绘制**.
+Select **Ram Alcove Walk Mode** above the sidebar controls. This mode has independent path state; the original drawing mode and its undo/redo history remain available through **Free Drawing**.
 
 1. Enter \(\lambda=a\omega_1+b\omega_2\). Here the reference path goes from \(A_0\) to **\(A_0+\lambda\)**, whose coordinate key is `a,b,L`. This plus-sign convention is distinct from the older minus-weight explorer.
-2. Choose the actual initial alcove \(wA_0\), with \(w\in\{e,s_1,s_2,s_1s_2,s_2s_1,w_0\}\). The default is \(e\). **载入有折叠的示例** sets up a nonidentity start for exploring branches immediately.
-3. Click **固定参考路径** to generate a reduced gallery. Optionally expand **指定参考 reduced word** and enter a wall-type word; it must be reduced and terminate at the selected \(A_0+\lambda\). The 60-step reference limit applies here too.
-4. At every step, inspect the highlighted actual wall, the current alcove's side, and the reference sign. Click **Crossing** or **Folding** when enabled. **上一步** undoes one operation and **重置本条** returns to the configured starting alcove.
+2. Choose the actual initial alcove \(wA_0\), with \(w\in\{e,s_1,s_2,s_1s_2,s_2s_1,w_0\}\). The default is \(e\). **Load a folding example** sets up a nonidentity start for exploring branches immediately.
+3. Click **Set reference path** to generate a reduced gallery. Optionally expand **Custom reduced reference word (optional)** and enter a wall-type word; it must be reduced and terminate at the selected \(A_0+\lambda\). The 60-step reference limit applies here too.
+4. At every step, inspect the highlighted actual wall, the current alcove's side, and the reference sign. Click **Crossing** or **Folding** when enabled. **Undo** undoes one operation and **Reset walk** returns to the configured starting alcove.
 5. Click **Enumerate All Ram Walks** to obtain the exact total and browse all legal results. Click a result to highlight its full operation sequence; pagination and direct path-number navigation never merge paths with equal endpoints.
 
 The reference path fixes wall types \((j_1,\ldots,j_m)\) and signs \((\varepsilon_1,\ldots,\varepsilon_m)\). Actual walls are recalculated in the **current** alcove after each operation. For an affine wall \(H_{\alpha,n}\), the positive side means \(\langle x,\alpha^\vee\rangle>n\); color and Coxeter type do not determine the side.
@@ -120,7 +120,7 @@ Each selected or exported path includes the reference wall types and signs, init
 
 This coefficient is distinct from Ram's endpoint weight \(\operatorname{wt}(p)\). Alcove positions use exact integer triangle coordinates, never pixels. Extended-affine \(\Omega\) sheets are not tracked, so the application does **not** infer or label a translation weight \(\operatorname{wt}(p)\) or final direction \(\varphi(p)\).
 
-**导出当前 Ram walk** saves the current partial or complete walk. **导出全部路径 JSON** exports every member when the family has at most 10,000 paths; larger families remain fully available through exact counting, pagination, and selected-path export. The top **导出 SVG** exports the displayed route.
+**Export current Ram walk** saves the current partial or complete walk. **Export all walks as JSON** exports every member when the family has at most 10,000 paths; larger families remain fully available through exact counting, pagination, and selected-path export. The top **Export SVG** exports the displayed route.
 
 The browser performs all calculation locally. `npm run build` produces a complete static `dist/` directory that can be deployed directly to GitHub Pages; no backend is needed.
 
@@ -130,8 +130,8 @@ Select **LP Admissible Foldings** in the mode selector. This mode implements the
 
 1. Enter \(\lambda=a\omega_1+b\omega_2\). The default is \(\omega_1\); the reference endpoint is \(A_0-\lambda\), with key `-a,-b,L`.
 2. Select **Schubert input u / Bruhat-chain start**. The default is \(u=w_0=321\). Every geometric path still starts at \(A_0\): changing \(u\) changes only the finite Bruhat-chain state, and never moves the initial alcove or inserts a prefix.
-3. Click **固定 LP 参考路径**. Leave the optional reduced word blank to generate one, or enter your own. The engine checks that no actual affine hyperplane is crossed twice, and that the geometric endpoint is correct. Repeated wall-type labels are allowed. As in the other modes, references are limited to 60 steps.
-4. At each reference position, compare the **current actual wall** with the **original reference reflection**, then use **Cross** or **Fold**. The panel shows the current finite permutation, its candidate successor, both inversion lengths, and the exact reason a fold is allowed or forbidden. **Undo** restores the alcove, Bruhat element, and folding positions together; **Reset 本条** restores \((A_0,u,\varnothing)\).
+3. Click **Set LP reference path**. Leave the optional reduced word blank to generate one, or enter your own. The engine checks that no actual affine hyperplane is crossed twice, and that the geometric endpoint is correct. Repeated wall-type labels are allowed. As in the other modes, references are limited to 60 steps.
+4. At each reference position, compare the **current actual wall** with the **original reference reflection**, then use **Cross** or **Fold**. The panel shows the current finite permutation, its candidate successor, both inversion lengths, and the exact reason a fold is allowed or forbidden. **Undo** restores the alcove, Bruhat element, and folding positions together; **Reset walk** restores \((A_0,u,\varnothing)\).
 5. Click **Enumerate All LP Foldings**, then select any result to show its geometry, operation sequence, folding positions, finite Bruhat chain, output index, and contribution. Different folding sets remain separate even when their final alcoves or output indices coincide. The JSON exports include all these records.
 
 The fixed reference data at position \(k\) are

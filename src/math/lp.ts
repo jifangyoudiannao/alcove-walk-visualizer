@@ -71,7 +71,7 @@ export const LP_INPUTS: { id: string; label: string; permutation: Permutation }[
 
 function validatePermutation(p: Permutation): void {
   if (!Array.isArray(p) || p.length !== 3 || p.some(value => !Number.isInteger(value)) || [...p].sort().join('') !== '123') {
-    throw new Error('有限 Weyl 元素必须是 1、2、3 的排列');
+    throw new Error('A finite Weyl element must be a permutation of 1, 2, and 3');
   }
 }
 export function permutationKey(p: Permutation): string { validatePermutation(p); return p.join(''); }
@@ -94,7 +94,7 @@ function copyReflection(reflection: LPReflection): LPReflection {
 }
 function wallOf(alcove: Alcove, type: WallType): Edge {
   const wall = edges(alcove).find(edge => edge.type === type);
-  if (!wall) throw new Error('墙类型必须为 0、1 或 2');
+  if (!wall) throw new Error('Wall type must be 0, 1, or 2');
   return wall;
 }
 function actualSide(alcove: Alcove, wall: Edge): Sign {
@@ -104,7 +104,7 @@ function actualSide(alcove: Alcove, wall: Edge): Sign {
   const d = wall.start.x === wall.end.x ? x3 - 3 * wall.start.x
     : wall.start.y === wall.end.y ? y3 - 3 * wall.start.y
     : x3 + y3 - 3 * (wall.start.x + wall.start.y);
-  if (!d) throw new Error('alcove 内点不能位于墙上');
+  if (!d) throw new Error('An interior alcove point cannot lie on a wall');
   return d > 0 ? 1 : -1;
 }
 function reflectionFor(alcove: Alcove, wall: Edge): LPReflection {
@@ -120,12 +120,12 @@ function reflectionFor(alcove: Alcove, wall: Edge): LPReflection {
 /** Fixed reduced reference from A0 to the geometric alcove A0 - lambda. */
 export function lpReference(weight: Weight, word?: readonly WallType[]): LPReference {
   if (!weight || !Number.isSafeInteger(weight.a) || !Number.isSafeInteger(weight.b)) {
-    throw new Error('weight 的系数 a、b 必须是安全范围内的整数');
+    throw new Error('Weight coefficients a and b must be safe integers');
   }
   const generated = reducedGallery(weight);
   const types = word === undefined ? [...generated.word] : [...word];
-  if (types.length > MAX_GALLERY_LENGTH) throw new Error(`参考路径最多支持 ${MAX_GALLERY_LENGTH} 步`);
-  if (types.some(type => type !== 0 && type !== 1 && type !== 2)) throw new Error('参考墙类型必须为 0、1 或 2');
+  if (types.length > MAX_GALLERY_LENGTH) throw new Error(`Reference paths support at most ${MAX_GALLERY_LENGTH} steps`);
+  if (types.some(type => type !== 0 && type !== 1 && type !== 2)) throw new Error('Reference wall types must be 0, 1, or 2');
   const reference: LPReference = {
     weight: { ...generated.weight }, target: { ...generated.target }, word: types,
     nodes: [{ ...A0 }], reflections: [], terminalVertex: { x: -weight.a || 0, y: -weight.b || 0 },
@@ -135,16 +135,16 @@ export function lpReference(weight: Weight, word?: readonly WallType[]): LPRefer
   for (const type of types) {
     const wall = wallOf(current, type), reflection = reflectionFor(current, wall);
     const key = `${reflection.root}:${reflection.level}`;
-    if (crossedHyperplanes.has(key)) throw new Error('参考路径不是 reduced：重复跨越同一实际 affine hyperplane');
+    if (crossedHyperplanes.has(key)) throw new Error('The reference path is not reduced: it crosses the same affine hyperplane more than once');
     crossedHyperplanes.add(key);
     reference.reflections.push(reflection);
     current = { ...wall.adjacent }; reference.nodes.push(current);
   }
-  if (!sameAlcove(current, reference.target)) throw new Error('参考反射字的几何终点不是指定的 A₀ − λ');
+  if (!sameAlcove(current, reference.target)) throw new Error('The reference word does not geometrically end at the specified A₀ − λ');
   return reference;
 }
 function checkedReference(reference: LPReference): LPReference {
-  if (!reference || !Array.isArray(reference.word)) throw new Error('LP 参考路径数据不完整');
+  if (!reference || !Array.isArray(reference.word)) throw new Error('LP reference-path data are incomplete');
   const expected = lpReference(reference.weight, reference.word);
   if (JSON.stringify(reference) !== JSON.stringify(expected)) {
     // Property order is immaterial for externally deserialized records.
@@ -158,23 +158,23 @@ function checkedReference(reference: LPReference): LPReference {
         return !r || r.root !== e.root || r.level !== e.level || r.betaSign !== e.betaSign
           || !r.finite || r.finite.join('') !== e.finite.join('')
           || JSON.stringify(r.wall) !== JSON.stringify(e.wall);
-      })) throw new Error('LP 原参考墙或指定终点顶点不一致');
+      })) throw new Error('The original LP reference walls or designated terminal vertex are inconsistent');
   }
   return expected;
 }
 
 /** LP admissibility uses the fixed reference reflection, not the actual wall. */
 export function lpChoices(reference: LPReference, position: number, current: Alcove, v: Permutation): LPChoices {
-  if (!Number.isInteger(position) || position < 0 || position >= reference.word.length) throw new Error('参考步骤编号超出范围');
+  if (!Number.isInteger(position) || position < 0 || position >= reference.word.length) throw new Error('Reference-step index is out of range');
   validatePermutation(v);
   const wall = wallOf(current, reference.word[position]), side = actualSide(current, wall);
   const referenceReflection = reference.reflections[position];
   const candidate = multiplyPermutations(v, referenceReflection.finite);
   const length = permutationLength(v), candidateLength = permutationLength(candidate);
   const canFold = candidateLength === length - 1;
-  const reason = canFold ? `长度从 ${length} 下降到 ${candidateLength}，是下降 Bruhat cover`
-    : length === 0 ? `e 没有下降 Bruhat cover；候选长度从 0 变为 ${candidateLength}`
-    : `长度从 ${length} ${candidateLength < length ? '下降到' : '变为'} ${candidateLength}，不是下降恰好 1 的 Bruhat cover`;
+  const reason = canFold ? `Length decreases from ${length} to ${candidateLength}: a descending Bruhat cover`
+    : length === 0 ? `e has no descending Bruhat cover; the candidate length increases from 0 to ${candidateLength}`
+    : `Length ${candidateLength < length ? 'decreases' : 'changes'} from ${length} to ${candidateLength}; a Bruhat cover must decrease length by exactly 1`;
   return { wall, side, crossingSign: side === 1 ? -1 : 1, referenceReflection, v: COPY(v), candidate, length, candidateLength, canFold, reason };
 }
 function emptyPath(u: Permutation): LPPath {
@@ -182,7 +182,7 @@ function emptyPath(u: Permutation): LPPath {
     bruhatChain: [COPY(u)], outputW: COPY(u), foldingPositions: [] };
 }
 function appendAction(reference: LPReference, path: LPPath, kind: LPAction): LPStep {
-  if (kind !== 'cross' && kind !== 'fold') throw new Error('操作必须是 crossing 或 folding');
+  if (kind !== 'cross' && kind !== 'fold') throw new Error('The action must be crossing or folding');
   const position = path.steps.length, current = path.nodes[path.nodes.length - 1];
   const choice = lpChoices(reference, position, current, path.outputW);
   if (kind === 'fold' && !choice.canFold) throw new Error(choice.reason);
@@ -216,7 +216,7 @@ export class LPWalk {
   get complete(): boolean { return this.position === this.reference.word.length; }
   get next(): LPChoices | null { return this.complete ? null : lpChoices(this.reference, this.position, this.current, this.v); }
   step(kind: LPAction): LPStep {
-    if (this.complete) throw new Error('参考路径已经完成；请撤销或重新开始');
+    if (this.complete) throw new Error('The reference path is complete; undo a step or reset');
     return appendAction(this.reference, this.state, kind);
   }
   undo(): boolean {
@@ -226,7 +226,7 @@ export class LPWalk {
   reset(): void { this.state = emptyPath(this.u); }
   /** Atomic replay restores all geometry, Bruhat state and J together. */
   loadActions(kinds: readonly LPAction[]): void {
-    if (!Array.isArray(kinds) || kinds.length > this.reference.word.length) throw new Error('操作序列超过参考路径长度');
+    if (!Array.isArray(kinds) || kinds.length > this.reference.word.length) throw new Error('The action sequence exceeds the reference-path length');
     const next = emptyPath(this.u);
     for (const kind of kinds) appendAction(this.reference, next, kind);
     this.state = next;
@@ -254,7 +254,7 @@ export class LPFamily {
     this.suffixCounts.set(key, count); return count;
   }
   pathAt(index: bigint): LPPath {
-    if (typeof index !== 'bigint' || index < 0n || index >= this.total) throw new Error('LP 路径编号超出范围');
+    if (typeof index !== 'bigint' || index < 0n || index >= this.total) throw new Error('LP path index is out of range');
     const path = emptyPath(this.u);
     for (let position = 0; position < this.reference.word.length; position++) {
       const crossingCount = this.count(position + 1, path.outputW);

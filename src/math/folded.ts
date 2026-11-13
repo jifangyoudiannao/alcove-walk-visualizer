@@ -46,7 +46,7 @@ export function galleryDistance(a: Alcove, b: Alcove): number {
 
 function wallOf(a: Alcove, type: WallType): Edge {
   const wall = edges(a).find(edge => edge.type === type);
-  if (!wall) throw new Error('无效的墙类型');
+  if (!wall) throw new Error('Invalid wall type');
   return wall;
 }
 
@@ -69,16 +69,16 @@ export function crossingSign(a: Alcove, type: WallType): Sign {
  */
 export function reducedGallery(weight: Weight): ReducedGallery {
   if (!Number.isSafeInteger(weight.a) || !Number.isSafeInteger(weight.b)) {
-    throw new Error('weight 的系数 a、b 必须是安全范围内的整数');
+    throw new Error('Weight coefficients a and b must be safe integers');
   }
   // A cheap bound also prevents arithmetic outside the safe-integer range.
   if (Math.abs(weight.a) > MAX_GALLERY_LENGTH || Math.abs(weight.b) > MAX_GALLERY_LENGTH) {
-    throw new Error(`约化路径最多支持 ${MAX_GALLERY_LENGTH} 步，请减小 weight`);
+    throw new Error(`Reduced paths support at most ${MAX_GALLERY_LENGTH} steps; choose a smaller weight`);
   }
   const target: Alcove = { i: -weight.a || 0, j: -weight.b || 0, half: 'L' };
   let remaining = galleryDistance(A0, target);
   if (remaining > MAX_GALLERY_LENGTH) {
-    throw new Error(`约化路径需要 ${remaining} 步；目前最多支持 ${MAX_GALLERY_LENGTH} 步，请减小 weight`);
+    throw new Error(`This reduced path needs ${remaining} steps; the limit is ${MAX_GALLERY_LENGTH}. Choose a smaller weight`);
   }
   const gallery: ReducedGallery = {
     weight: { a: weight.a || 0, b: weight.b || 0 }, target,
@@ -90,14 +90,14 @@ export function reducedGallery(weight: Weight): ReducedGallery {
     // ties by Coxeter wall type makes the chosen gallery deterministic.
     const wall = edges(current).sort((a, b) => a.type - b.type)
       .find(edge => galleryDistance(edge.adjacent, target) === remaining - 1);
-    if (!wall) throw new Error('未找到缩短距离的相邻 alcove');
+    if (!wall) throw new Error('No neighboring alcove reduces the distance');
     gallery.word.push(wall.type);
     gallery.signs.push(crossingSign(current, wall.type));
     current = { ...wall.adjacent };
     gallery.nodes.push(current);
     remaining--;
   }
-  if (!sameAlcove(current, target)) throw new Error('约化路径终点校验失败');
+  if (!sameAlcove(current, target)) throw new Error('Reduced-path endpoint validation failed');
   return gallery;
 }
 
@@ -123,9 +123,9 @@ export class FoldFamily {
   private readonly suffixCounts = new Map<string, bigint>();
 
   constructor(gallery: ReducedGallery, rule: FoldRule) {
-    if (!['all', 'positive', 'ram'].includes(rule)) throw new Error('无效的折叠规则');
-    if (gallery.word.length > MAX_GALLERY_LENGTH) throw new Error(`最多支持 ${MAX_GALLERY_LENGTH} 步`);
-    if (gallery.signs.length !== gallery.word.length) throw new Error('参考路径符号不完整');
+    if (!['all', 'positive', 'ram'].includes(rule)) throw new Error('Invalid folding rule');
+    if (gallery.word.length > MAX_GALLERY_LENGTH) throw new Error(`At most ${MAX_GALLERY_LENGTH} steps are supported`);
+    if (gallery.signs.length !== gallery.word.length) throw new Error('Reference-path signs are incomplete');
     this.gallery = {
       weight: { ...gallery.weight }, target: { ...gallery.target },
       word: [...gallery.word], nodes: gallery.nodes.map(a => ({ ...a })),
@@ -157,7 +157,7 @@ export class FoldFamily {
 
   pathAt(index: bigint): FoldPath {
     if (typeof index !== 'bigint' || index < 0n || index >= this.total) {
-      throw new Error('路径编号超出范围');
+      throw new Error('Path index is out of range');
     }
     const path: FoldPath = { nodes: [{ ...A0 }], steps: [], folds: 0, positiveFolds: 0, negativeFolds: 0 };
     let current = { ...A0 };
@@ -167,7 +167,7 @@ export class FoldFamily {
       const crossingCount = this.count(position + 1, wall.adjacent);
       const folding = index >= crossingCount;
       if (folding) {
-        if (!this.canFold(position, current)) throw new Error('折叠路径计数不一致');
+        if (!this.canFold(position, current)) throw new Error('Folded-path count is inconsistent');
         index -= crossingCount;
       }
       const next = folding ? { ...current } : { ...wall.adjacent };

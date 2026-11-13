@@ -40,12 +40,12 @@ export class Walk {
   append(alcove: Alcove, point = center(alcove)): boolean {
     const edge = crossedWall(this.current,alcove);
     if (!edge) return false;
-    if (this.nodes.length >= 501) throw new Error('路线最多包含 500 步');
+    if (this.nodes.length >= 501) throw new Error('A walk can contain at most 500 steps');
     this.commit([...this.nodes, {alcove:{...alcove}, point:{...point}, via:edge.type}]);
     return true;
   }
   setWord(word: readonly WallType[]): void {
-    if(word.length>500) throw new Error('路线最多包含 500 步');
+    if(word.length>500) throw new Error('A walk can contain at most 500 steps');
     const result: WalkNode[] = [initialNode()];
     let a = A0;
     for (const s of word) {

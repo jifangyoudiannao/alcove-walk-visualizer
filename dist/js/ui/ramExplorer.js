@@ -12,7 +12,7 @@ const initialPath = () => ({ nodes: [{ ...A0 }], steps: [], folds: 0, positiveFo
 function integer(id) {
     const text = field(id).value.trim();
     if (!/^[+-]?\d+$/.test(text) || !Number.isSafeInteger(Number(text)))
-        throw new Error('a、b 必须是安全范围内的整数。');
+        throw new Error('a and b must be safe integers.');
     return Number(text);
 }
 function downloadJSON(name, value) {
@@ -89,7 +89,7 @@ export class RamExplorer {
             this.attempt(() => {
                 const text = field('ram-jump').value.trim();
                 if (!/^\d+$/.test(text))
-                    throw new Error('请输入从 1 开始的路径编号。');
+                    throw new Error('Enter a path number starting at 1.');
                 this.selectPath(BigInt(text) - 1n);
             });
         });
@@ -101,9 +101,9 @@ export class RamExplorer {
         el('ram-export-all').addEventListener('click', () => this.attempt(() => {
             this.requireConfigured();
             if (!this.family)
-                throw new Error('请先枚举 Ram walks。');
+                throw new Error('Enumerate the Ram walks first.');
             if (this.family.total > 10000n)
-                throw new Error('整批导出最多 10,000 条；全部路径仍可分页浏览及逐条导出。');
+                throw new Error('Bulk export supports up to 10,000 paths; all paths remain available through pagination and individual export.');
             const paths = [];
             for (let i = 0n; i < this.family.total; i++)
                 paths.push({ index: String(i + 1n), ...describeRamPath(this.reference, this.walk.start, this.family.pathAt(i)) });
@@ -141,7 +141,7 @@ export class RamExplorer {
         const startId = select('ram-start').value;
         const start = FINITE_STARTS.find(item => item.id === startId);
         if (!start)
-            throw new Error('请选择有限 Weyl 群中的起点。');
+            throw new Error('Choose a starting alcove from the finite Weyl group.');
         const positiveOnly = select('ram-mode').value === 'positive';
         const walk = new RamWalk(reference, start.alcove, positiveOnly);
         const original = new RamWalk(reference);
@@ -161,9 +161,9 @@ export class RamExplorer {
     }
     requireConfigured() {
         if (!this.walk || !this.reference)
-            throw new Error('请先固定参考路径。');
+            throw new Error('Set the reference path first.');
         if (this.dirty)
-            throw new Error('输入已更改，请先点击「固定参考路径」。');
+            throw new Error('Inputs changed. Click “Set reference path” first.');
     }
     perform(kind) {
         this.attempt(() => { this.requireConfigured(); this.walk.step(kind); this.selectedIndex = null; this.changed(true); });
@@ -178,7 +178,7 @@ export class RamExplorer {
     selectPath(index) {
         this.requireConfigured();
         if (!this.family || index < 0n || index >= this.family.total)
-            throw new Error(`路径编号应介于 1 和 ${this.family?.total ?? 1} 之间。`);
+            throw new Error(`Path number must be between 1 and ${this.family?.total ?? 1}.`);
         const path = this.family.pathAt(index);
         this.walk.loadActions(path.steps.map(s => s.kind));
         this.selectedIndex = index;
@@ -197,18 +197,18 @@ export class RamExplorer {
             return;
         const { a, b } = this.reference.weight;
         const ref = this.reference;
-        el('ram-reference-summary').textContent = `λ = (${a})ω₁ + (${b})ω₂ · A₀ + λ = ${alcoveKey(ref.target)} · ${ref.word.length} 步 reduced path`;
+        el('ram-reference-summary').textContent = `λ = (${a})ω₁ + (${b})ω₂ · A₀ + λ = ${alcoveKey(ref.target)} · ${ref.word.length}-step reduced path`;
         el('ram-reference-signs').textContent = ref.word.map((type, i) => `c${SUB[type]}${ref.signs[i] > 0 ? '⁺' : '⁻'}`).join(' ') || 'e';
-        el('ram-current').textContent = `w = ${formatWord(FINITE_STARTS.find(s => s.id === this.startId).word)} · 起点 ${alcoveKey(this.walk.start)} · 当前 ${alcoveKey(this.walk.current)}`;
-        el('ram-progress').textContent = this.dirty ? '设置已修改，固定参考路径后再继续。' : `已完成 ${this.walk.position} / ${ref.word.length} 步${this.selectedIndex === null ? '' : ` · 枚举路径 #${this.selectedIndex + 1n}`}`;
+        el('ram-current').textContent = `w = ${formatWord(FINITE_STARTS.find(s => s.id === this.startId).word)} · Start ${alcoveKey(this.walk.start)} · Current ${alcoveKey(this.walk.current)}`;
+        el('ram-progress').textContent = this.dirty ? 'Settings changed. Set the reference path to continue.' : `Completed ${this.walk.position} / ${ref.word.length} steps${this.selectedIndex === null ? '' : ` · Enumerated path #${this.selectedIndex + 1n}`}`;
         const next = this.next;
-        el('ram-next-wall').textContent = next ? `第 ${this.walk.position + 1} 步 · s${SUB[ref.word[this.walk.position]]} · ${next.wall.equation}` : '—';
-        el('ram-side').textContent = next ? `${next.side > 0 ? 'Positive 正侧' : 'Negative 负侧'}` : '—';
+        el('ram-next-wall').textContent = next ? `Step ${this.walk.position + 1} · s${SUB[ref.word[this.walk.position]]} · ${next.wall.equation}` : '—';
+        el('ram-side').textContent = next ? `${next.side > 0 ? 'Positive side' : 'Negative side'}` : '—';
         el('ram-reference-sign').textContent = next ? `ε${this.walk.position + 1} = ${signText(next.referenceSign)}` : '—';
         el('ram-choice-panel').classList.toggle('has-choice', !!next?.canFold);
-        el('ram-choice-panel').setAttribute('aria-label', next?.canFold ? '请选择 Crossing 或 Folding' : '本步只允许 Crossing');
+        el('ram-choice-panel').setAttribute('aria-label', next?.canFold ? 'Choose Crossing or Folding' : 'Only Crossing is allowed at this step');
         el('ram-cross').textContent = next ? `Crossing · c${SUB[ref.word[this.walk.position]]}${next.crossingSign > 0 ? '⁺' : '⁻'}` : 'Crossing';
-        el('ram-fold').textContent = next ? `Folding · f${SUB[ref.word[this.walk.position]]}${next.side > 0 ? '⁺' : '⁻'}${next.canFold ? '' : '（禁止）'}` : 'Folding';
+        el('ram-fold').textContent = next ? `Folding · f${SUB[ref.word[this.walk.position]]}${next.side > 0 ? '⁺' : '⁻'}${next.canFold ? '' : ' (not allowed)'}` : 'Folding';
         el('ram-cross').toggleAttribute('disabled', !next);
         el('ram-fold').toggleAttribute('disabled', !next?.canFold);
         el('ram-undo').toggleAttribute('disabled', this.dirty || !this.walk.position);
@@ -216,20 +216,20 @@ export class RamExplorer {
         el('ram-enumerate').toggleAttribute('disabled', this.dirty);
         el('ram-export-selected').toggleAttribute('disabled', this.dirty);
         el('ram-export-all').toggleAttribute('disabled', this.dirty || !this.family || this.family.total > 10000n);
-        el('ram-complete-note').textContent = this.dirty ? '当前图仍显示已固定的旧参考路径。' : this.walk.complete ? '本条路径已完成。可枚举全部结果，或返回上一步修改选择。' : next?.canFold ? '本步有两个合法操作：请选择穿墙或折叠。' : '本步只有 crossing 合法；folding 已禁用。';
+        el('ram-complete-note').textContent = this.dirty ? 'The canvas still shows the previous reference path.' : this.walk.complete ? 'Walk complete. Enumerate all results or undo a step to change your choices.' : next?.canFold ? 'Two operations are allowed: choose crossing or folding.' : 'Only crossing is allowed at this step; folding is disabled.';
         const data = describeRamPath(ref, this.walk.start, this.path);
         el('ram-positions').textContent = `J = {${data.foldingPositions.join(', ')}}`;
-        el('ram-fold-stats').textContent = `正折叠 ${this.path.positiveFolds} · 负折叠 ${this.path.negativeFolds} · 总折叠 ${this.path.folds}`;
-        el('ram-coefficient').textContent = `${this.walk.complete ? '路径系数' : '当前前缀系数'}：${data.coefficient.expression}`;
+        el('ram-fold-stats').textContent = `Positive folds ${this.path.positiveFolds} · Negative folds ${this.path.negativeFolds} · Total ${this.path.folds}`;
+        el('ram-coefficient').textContent = `${this.walk.complete ? 'Path coefficient' : 'Prefix coefficient'}: ${data.coefficient.expression}`;
         if (!this.family)
             return;
         el('ram-total').textContent = this.family.total.toLocaleString();
-        el('ram-page-info').textContent = `${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} 条 · 完整集合，无终点去重${this.family.total > 10000n ? ' · 整批导出上限 10,000 条' : ''}`;
+        el('ram-page-info').textContent = `${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} paths · Distinct walks retained, even with equal endpoints${this.family.total > 10000n ? ' · Bulk export limit: 10,000 paths' : ''}`;
         el('ram-prev').toggleAttribute('disabled', this.dirty || this.pageStart === 0n);
         el('ram-next').toggleAttribute('disabled', this.dirty || this.pageStart + PAGE_SIZE >= this.family.total);
         el('ram-list').innerHTML = this.page.map(({ index, path }) => {
             const details = describeRamPath(ref, this.walk.start, path);
-            return `<button type="button" class="ram-card${index === this.selectedIndex ? ' selected' : ''}" data-ram-index="${index}" aria-pressed="${index === this.selectedIndex}"${this.dirty ? ' disabled' : ''}><span class="ram-card-title">#${index + 1n} · J = {${details.foldingPositions.join(', ')}}</span><span class="ram-actions">${actionLabel(path)}</span><span class="ram-endpoint">终点 ${alcoveKey(path.nodes[path.nodes.length - 1])}</span><span class="ram-coefficient">系数 ${details.coefficient.expression}</span></button>`;
+            return `<button type="button" class="ram-card${index === this.selectedIndex ? ' selected' : ''}" data-ram-index="${index}" aria-pressed="${index === this.selectedIndex}"${this.dirty ? ' disabled' : ''}><span class="ram-card-title">#${index + 1n} · J = {${details.foldingPositions.join(', ')}}</span><span class="ram-actions">${actionLabel(path)}</span><span class="ram-endpoint">Endpoint ${alcoveKey(path.nodes[path.nodes.length - 1])}</span><span class="ram-coefficient">Coefficient ${details.coefficient.expression}</span></button>`;
         }).join('');
         field('ram-jump').value = String((this.selectedIndex ?? this.pageStart) + 1n);
     }

@@ -81,8 +81,8 @@ export function parseWord(text) {
     s = s.replace(/s\s*_?\s*\{?\s*([012])\s*\}?/gi, '$1');
     s = s.replace(/[\s,;→\-·]/g, '');
     if (!s || /[^012]/.test(s))
-        throw new Error('请输入如 0 2 1 2、s₀ s₂ s₁ s₂ 或 s0s2s1s2 的反射字');
+        throw new Error('Enter a reflection word such as 0 2 1 2, s₀ s₂ s₁ s₂, or s0s2s1s2');
     if (s.length > 200)
-        throw new Error('一次最多输入 200 步');
+        throw new Error('Enter at most 200 steps at a time');
     return Array.from(s, digit => Number(digit));
 }

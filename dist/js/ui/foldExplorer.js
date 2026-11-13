@@ -9,10 +9,10 @@ function ruleValue() { return el('fold-rule').value; }
 function integerValue(id) {
     const value = input(id).value.trim();
     if (!/^[+-]?\d+$/.test(value))
-        throw new Error('请输入整数 weight 系数 a、b（可为负数或 0）。');
+        throw new Error('Enter integer weight coefficients a and b (negative values and zero are allowed).');
     const number = Number(value);
     if (!Number.isSafeInteger(number))
-        throw new Error('weight 系数超出安全整数范围。');
+        throw new Error('Weight coefficient exceeds the safe integer range.');
     return number;
 }
 export function actionLabel(path) {
@@ -73,7 +73,7 @@ export class FoldExplorer {
             this.attempt(() => {
                 const text = input('family-jump').value.trim();
                 if (!/^\d+$/.test(text))
-                    throw new Error('请输入从 1 开始的路径编号。');
+                    throw new Error('Enter a path number starting at 1.');
                 this.select(BigInt(text) - 1n);
             });
         });
@@ -112,7 +112,7 @@ export class FoldExplorer {
     }
     select(index) {
         if (!this.family || index < 0n || index >= this.family.total)
-            throw new Error(`路径编号须介于 1 和 ${this.family?.total ?? 1} 之间。`);
+            throw new Error(`Path number must be between 1 and ${this.family?.total ?? 1}.`);
         this.path = this.family.pathAt(index);
         this.selectedIndex = index;
         this.active = true;
@@ -133,25 +133,25 @@ export class FoldExplorer {
     }
     render() {
         const notes = {
-            all: '每一步可穿墙或在该墙折返；固定墙类型序列，折叠后从当前 alcove 继续。这是全部几何折叠路径，不附加 LP 的 Bruhat 条件。',
-            positive: '仅在墙的正侧允许折叠：x > n、y > n 或 x + y > n。穿墙仍可沿任一方向。',
-            ram: '按 Ram §3.2 Theorem 3.3：fold 的符号须等于参考 crossing 的符号。这里起点为 A₀（w = e），因此只有原来的无折叠路径。',
+            all: 'Cross or fold at every step. Wall types are fixed; after a fold, continue from the current alcove. This includes all geometric foldings, without the LP Bruhat condition.',
+            positive: 'Fold only on the positive side: x > n, y > n, or x + y > n. Crossings may have either sign.',
+            ram: 'Ram §3.2, Theorem 3.3: the fold sign must match the reference crossing sign. This explorer starts at A₀ (w = e), so only the original unfolded path remains.',
         };
         el('fold-rule-note').textContent = notes[this.rule];
         el('fold-results').hidden = !this.family;
         if (!this.gallery || !this.family)
             return;
         const { a, b } = this.gallery.weight;
-        el('weight-target').textContent = `λ = (${a})ω₁ + (${b})ω₂ · 目标 A₀ − λ = ${alcoveKey(this.gallery.target)}`;
-        el('reference-word').textContent = `Reduced path · ${this.gallery.word.length} 步 · ${formatWord(this.gallery.word)}`;
+        el('weight-target').textContent = `λ = (${a})ω₁ + (${b})ω₂ · Target A₀ − λ = ${alcoveKey(this.gallery.target)}`;
+        el('reference-word').textContent = `Reduced path · ${this.gallery.word.length} steps · ${formatWord(this.gallery.word)}`;
         el('family-count').textContent = this.family.total.toLocaleString();
-        el('family-page-info').textContent = `路径 ${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} · ${this.active ? this.selectedIndex === null ? '查看参考路径' : `选中 #${this.selectedIndex + 1n}` : '自由绘制中'}`;
+        el('family-page-info').textContent = `Paths ${this.pageStart + 1n}–${this.pageStart + BigInt(this.page.length)} / ${this.family.total} · ${this.active ? this.selectedIndex === null ? 'Reference path' : `Selected #${this.selectedIndex + 1n}` : 'Free drawing'}`;
         el('family-prev').toggleAttribute('disabled', this.pageStart === 0n);
         el('family-next').toggleAttribute('disabled', this.pageStart + PAGE_SIZE >= this.family.total);
         el('show-reference').setAttribute('aria-pressed', String(this.active && this.selectedIndex === null));
         el('family-list').innerHTML = this.page.map(({ index, path }) => {
             const selected = this.active && this.selectedIndex === index;
-            return `<button type="button" class="family-card${selected ? ' selected' : ''}" data-path-index="${index}" aria-pressed="${selected}"><span class="family-card-top"><strong>#${index + 1n}</strong><span>${path.folds} 次折叠 · +${path.positiveFolds} / −${path.negativeFolds}</span></span><span class="family-actions">${actionLabel(path)}</span><span class="family-endpoint">终点 ${alcoveKey(path.nodes[path.nodes.length - 1])}</span></button>`;
+            return `<button type="button" class="family-card${selected ? ' selected' : ''}" data-path-index="${index}" aria-pressed="${selected}"><span class="family-card-top"><strong>#${index + 1n}</strong><span>${path.folds} folds · +${path.positiveFolds} / −${path.negativeFolds}</span></span><span class="family-actions">${actionLabel(path)}</span><span class="family-endpoint">Endpoint ${alcoveKey(path.nodes[path.nodes.length - 1])}</span></button>`;
         }).join('');
         input('family-jump').value = String((this.selectedIndex ?? this.pageStart) + 1n);
     }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,69 +10,69 @@
 <body>
   <div id="app">
     <header class="masthead">
-      <div class="brand"><div class="brand-symbol"><span>●</span></div><div class="brand-copy"><div class="brand-main"><span class="brand-title">Alcove Studio</span><span class="badge-a2">TYPE A₂</span></div><div class="brand-tagline">一步一步，走过仿射 Weyl 群。</div></div></div>
+      <div class="brand"><div class="brand-symbol"><span>●</span></div><div class="brand-copy"><div class="brand-main"><span class="brand-title">Alcove Studio</span><span class="badge-a2">TYPE A₂</span></div><div class="brand-tagline">Explore the affine Weyl group, one step at a time.</div></div></div>
       <div class="header-actions">
-        <button class="plain-action" id="help-btn" title="查看说明">ⓘ <span>使用说明</span></button>
-        <button class="plain-action" id="prompt-btn" title="复制项目开发提示词">▤ <span>复用提示词</span></button>
-        <button class="primary-action" id="export-btn">⇩ <span>导出 SVG</span></button>
+        <button class="plain-action" id="help-btn" title="View instructions">ⓘ <span>Help</span></button>
+        <button class="plain-action" id="prompt-btn" title="Copy the project development prompt">▤ <span>Copy Prompt</span></button>
+        <button class="primary-action" id="export-btn">⇩ <span>Export SVG</span></button>
       </div>
     </header>
 
     <main class="workspace">
-      <section class="canvas-shell" aria-label="A₂ 仿射 Coxeter 复形交互绘图区域">
-        <svg id="alcove-canvas" aria-label="A₂ alcove 三角格和行走路径" role="img" tabindex="0"></svg>
-        <div class="canvas-heading"><div class="overline">A₂ · AFFINE COXETER COMPLEX</div><h1>从 A₀ 出发，点击相邻 alcove</h1><p>沿着三色墙，画出你的路线。</p></div>
+      <section class="canvas-shell" aria-label="Interactive A₂ affine Coxeter complex">
+        <svg id="alcove-canvas" aria-label="A₂ triangular alcove grid and walk" role="img" tabindex="0"></svg>
+        <div class="canvas-heading"><div class="overline">A₂ · AFFINE COXETER COMPLEX</div><h1>Start at A₀. Click an adjacent alcove.</h1><p>Trace a path across the colored walls.</p></div>
         <div class="wall-legend"><span><i class="s0"></i>s₀</span><span><i class="s1"></i>s₁</span><span><i class="s2"></i>s₂</span></div>
-        <div class="draw-state"><span class="status-pip"></span><span id="drawing-status">打点模式</span></div>
-        <div id="ram-choice-popup" class="ram-choice-popup" role="dialog" aria-label="Crossing / Folding 选择" hidden>
-          <strong>本步有两个合法选择</strong><p id="ram-popup-info"></p>
+        <div class="draw-state"><span class="status-pip"></span><span id="drawing-status">Draw mode</span></div>
+        <div id="ram-choice-popup" class="ram-choice-popup" role="dialog" aria-label="Crossing / Folding choices" hidden>
+          <strong>Choose one of two allowed moves</strong><p id="ram-popup-info"></p>
           <div><button id="ram-popup-cross" type="button">Crossing</button><button id="ram-popup-fold" type="button">Folding</button></div>
         </div>
-        <div class="float-toolbar" role="toolbar" aria-label="绘图工具">
-          <button class="tool-button selected" data-tool="draw" title="打点模式 (D)">✎</button>
-          <button class="tool-button" data-tool="pan" title="拖动画布 (H)">✋</button>
+        <div class="float-toolbar" role="toolbar" aria-label="Drawing tools">
+          <button class="tool-button selected" data-tool="draw" title="Draw mode (D)">✎</button>
+          <button class="tool-button" data-tool="pan" title="Pan canvas (H)">✋</button>
           <div class="tool-split"></div>
-          <button class="tool-button" id="zoom-out" title="缩小">−</button>
+          <button class="tool-button" id="zoom-out" title="Zoom out">−</button>
           <span id="zoom-label" class="zoom-label">100%</span>
-          <button class="tool-button" id="zoom-in" title="放大">＋</button>
+          <button class="tool-button" id="zoom-in" title="Zoom in">＋</button>
           <div class="tool-split"></div>
-          <button class="tool-text" id="recenter-btn" title="回到 fundamental alcove">⌂ 回到 A₀</button>
-          <button class="tool-text" id="fit-btn" title="完整显示当前路线">⛶ 适合路径</button>
+          <button class="tool-text" id="recenter-btn" title="Return to the fundamental alcove">⌂ Center A₀</button>
+          <button class="tool-text" id="fit-btn" title="Show the entire path">⛶ Fit path</button>
         </div>
-        <div class="canvas-footer"><span id="canvas-footnote">已就绪 · 点击浅绿色的相邻 alcove 继续</span><span>Space 拖动 · 滚轮缩放</span></div>
+        <div class="canvas-footer"><span id="canvas-footnote">Ready · Click a pale green adjacent alcove to continue</span><span>Space + drag to pan · Scroll to zoom</span></div>
       </section>
 
       <aside class="sidebar">
-        <div class="sidebar-header"><div class="overline">PATH BUILDER</div><div class="sidebar-title-row"><h2>你的 Alcove walk</h2><span class="live-dot"><i></i>自由绘制</span></div></div>
-        <nav class="mode-switch" aria-label="Alcove walk 模式">
-          <button id="open-free-mode" type="button" class="selected" aria-pressed="true">自由绘制</button>
+        <div class="sidebar-header"><div class="overline">PATH BUILDER</div><div class="sidebar-title-row"><h2>Your Alcove Walk</h2><span class="live-dot"><i></i>Free Drawing</span></div></div>
+        <nav class="mode-switch" aria-label="Alcove walk modes">
+          <button id="open-free-mode" type="button" class="selected" aria-pressed="true">Free Drawing</button>
           <button id="open-ram-mode" type="button" aria-pressed="false">Ram Alcove Walk Mode</button>
           <button id="open-lp-mode" type="button" class="lp-mode-tab" aria-pressed="false">LP Admissible Foldings</button>
         </nav>
         <section id="ram-panel" class="side-section ram-panel" aria-labelledby="ram-heading" hidden>
           <div class="side-label-row"><h3 id="ram-heading">Ram Alcove Walk Mode</h3><span class="feature-tag">A₂</span></div>
-          <p class="ram-intro">固定参考路径，再从 wA₀ 逐步穿墙或折叠。</p>
+          <p class="ram-intro">Fix a reference path, then cross or fold step by step from wA₀.</p>
           <form id="ram-form" class="ram-form">
-            <div class="ram-weight-title">λ = aω₁ + bω₂ <span>参考终点 A₀ + λ</span></div>
+            <div class="ram-weight-title">λ = aω₁ + bω₂ <span>Reference endpoint A₀ + λ</span></div>
             <div class="ram-weight-fields">
-              <label for="ram-a">a<input id="ram-a" type="number" value="1" step="1" required aria-label="Ram 参考 weight 的 ω₁ 系数 a" /></label>
-              <label for="ram-b">b<input id="ram-b" type="number" value="1" step="1" required aria-label="Ram 参考 weight 的 ω₂ 系数 b" /></label>
+              <label for="ram-a">a<input id="ram-a" type="number" value="1" step="1" required aria-label="Ram reference weight coefficient a of ω₁" /></label>
+              <label for="ram-b">b<input id="ram-b" type="number" value="1" step="1" required aria-label="Ram reference weight coefficient b of ω₂" /></label>
             </div>
-            <label for="ram-start">起始 alcove · wA₀</label>
+            <label for="ram-start">Starting alcove · wA₀</label>
             <select id="ram-start">
-              <option value="e">e · A₀（默认）</option>
+              <option value="e">e · A₀ (default)</option>
               <option value="1">s₁ A₀</option>
               <option value="2">s₂ A₀</option>
               <option value="12">s₁s₂ A₀</option>
               <option value="21">s₂s₁ A₀</option>
               <option value="121">w₀ A₀ · s₁s₂s₁ A₀</option>
             </select>
-            <label for="ram-mode">规则</label>
+            <label for="ram-mode">Rule</label>
             <select id="ram-mode"><option value="ram">Ram Theorem 3.3</option><option value="positive">Positive Folding Mode</option></select>
-            <details class="ram-custom-reference"><summary>指定参考 reduced word（可选）</summary><label for="ram-reference-input">从 A₀ 到 A₀ + λ 的墙类型序列</label><input id="ram-reference-input" type="text" placeholder="留空自动生成 reduced path" spellcheck="false" /><p class="hint">例如 0 1 2；必须约化且到达所填 weight 的目标。最多 60 步。</p></details>
-            <button type="submit" class="dark-button ram-configure">固定参考路径</button>
+            <details class="ram-custom-reference"><summary>Custom reduced reference word (optional)</summary><label for="ram-reference-input">Wall-type sequence from A₀ to A₀ + λ</label><input id="ram-reference-input" type="text" placeholder="Leave blank to generate a reduced path" spellcheck="false" /><p class="hint">For example, 0 1 2. The word must be reduced and reach the chosen target. Up to 60 steps.</p></details>
+            <button type="submit" class="dark-button ram-configure">Set reference path</button>
           </form>
-          <button id="ram-demo" type="button" class="ram-demo">载入有折叠的示例</button>
+          <button id="ram-demo" type="button" class="ram-demo">Load a folding example</button>
           <p id="ram-error" class="weight-error" role="alert"></p>
           <div id="ram-work" hidden>
             <div class="ram-reference">
@@ -80,56 +80,56 @@
               <p id="ram-reference-signs"></p>
             </div>
             <div class="ram-step-panel">
-              <div class="side-label-row"><h3>当前一步</h3><span id="ram-progress" class="ram-progress" role="status" aria-live="polite"></span></div>
+              <div class="side-label-row"><h3>Current step</h3><span id="ram-progress" class="ram-progress" role="status" aria-live="polite"></span></div>
               <dl class="ram-step-data">
-                <div><dt>当前 alcove</dt><dd id="ram-current"></dd></div>
-                <div><dt>实际 affine wall</dt><dd id="ram-next-wall"></dd></div>
-                <div><dt>当前所在侧</dt><dd id="ram-side"></dd></div>
-                <div><dt>参考 crossing</dt><dd id="ram-reference-sign"></dd></div>
+                <div><dt>Current alcove</dt><dd id="ram-current"></dd></div>
+                <div><dt>Actual affine wall</dt><dd id="ram-next-wall"></dd></div>
+                <div><dt>Current side</dt><dd id="ram-side"></dd></div>
+                <div><dt>Reference crossing</dt><dd id="ram-reference-sign"></dd></div>
               </dl>
-              <div id="ram-choice-panel" class="ram-choices" role="group" aria-label="Crossing / Folding 选择">
+              <div id="ram-choice-panel" class="ram-choices" role="group" aria-label="Crossing / Folding choices">
                 <button id="ram-cross" type="button">Crossing</button>
                 <button id="ram-fold" type="button">Folding</button>
               </div>
-              <p class="hint ram-choice-hint">高亮墙是本步实际墙；不合法的操作会禁用。</p>
-              <div class="ram-history"><button id="ram-undo" type="button">← 上一步</button><button id="ram-reset" type="button">重置本条</button></div>
+              <p class="hint ram-choice-hint">The highlighted wall is the actual wall for this step. Invalid moves are disabled.</p>
+              <div class="ram-history"><button id="ram-undo" type="button">← Undo</button><button id="ram-reset" type="button">Reset walk</button></div>
               <p id="ram-complete-note" class="ram-complete-note" role="status" aria-live="polite"></p>
             </div>
             <div class="ram-path-summary">
               <p id="ram-positions"></p><p id="ram-fold-stats"></p><p id="ram-coefficient"></p>
-              <p class="hint">c = crossing，f = folding；上标 ± 表示方向或折叠所在侧。逐步墙记录见下方。</p>
+              <p class="hint">c = crossing, f = folding. Superscripts ± indicate crossing direction or the side of a fold. See the step log below.</p>
             </div>
             <button id="ram-enumerate" type="button" class="dark-button ram-enumerate">Enumerate All Ram Walks</button>
             <div id="ram-family" hidden>
-              <div class="family-total"><span>合法路径总数</span><strong id="ram-total">0</strong></div>
-              <label class="switch-line family-overlay"><span>叠加本页 paths</span><input id="ram-overlay" type="checkbox" checked /></label>
+              <div class="family-total"><span>Total legal walks</span><strong id="ram-total">0</strong></div>
+              <label class="switch-line family-overlay"><span>Overlay this page</span><input id="ram-overlay" type="checkbox" checked /></label>
               <p id="ram-page-info" class="hint" role="status" aria-live="polite"></p>
-              <div id="ram-list" class="ram-list" aria-label="Ram 合法路径列表"></div>
-              <div class="family-pagination"><button id="ram-prev" type="button">← 上一页</button><button id="ram-next" type="button">下一页 →</button></div>
-              <form id="ram-jump-form" class="family-jump-form"><label for="ram-jump">跳至路径</label><input id="ram-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="Ram 路径编号，从 1 开始" /><button type="submit">跳转</button></form>
-              <p class="hint">相同终点、不同操作序列分别保留。全部 JSON 导出最多 10,000 条。</p>
-              <button id="ram-export-all" type="button" class="wide-outline">导出全部路径 JSON</button>
+              <div id="ram-list" class="ram-list" aria-label="Legal Ram walks"></div>
+              <div class="family-pagination"><button id="ram-prev" type="button">← Previous</button><button id="ram-next" type="button">Next →</button></div>
+              <form id="ram-jump-form" class="family-jump-form"><label for="ram-jump">Go to walk</label><input id="ram-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="Ram walk number, starting at 1" /><button type="submit">Go</button></form>
+              <p class="hint">Different operation sequences remain separate, even with the same endpoint. Bulk JSON export supports up to 10,000 walks.</p>
+              <button id="ram-export-all" type="button" class="wide-outline">Export all walks as JSON</button>
             </div>
-            <button id="ram-export-selected" type="button" class="wide-outline">导出当前 Ram walk</button>
+            <button id="ram-export-selected" type="button" class="wide-outline">Export current Ram walk</button>
           </div>
-          <details class="ram-rules"><summary>查看 crossing / folding 规则</summary>
-            <p>正侧由当前实际墙的 x &gt; n、y &gt; n 或 x + y &gt; n 决定，与墙的颜色和类型无关。</p>
-            <table><thead><tr><th>参考</th><th>所在侧</th><th>允许操作</th></tr></thead><tbody><tr><td>+</td><td>Negative</td><td>cᵢ⁺</td></tr><tr><td>+</td><td>Positive</td><td>cᵢ⁻ 或 fᵢ⁺</td></tr><tr><td>−</td><td>Positive</td><td>cᵢ⁻</td></tr><tr><td>−</td><td>Negative</td><td>cᵢ⁺ 或 fᵢ⁻</td></tr></tbody></table>
-            <p>Fold 停留在同一个 alcove；下一步重新寻找当前 alcove 的指定类型墙。Positive Folding Mode 要求参考 crossing 全为 +，实际 crossing 仍可为 −。</p>
-            <p>w = e 时不会产生第一个合法 fold；选择其他 w 可出现折叠。不添加 Lenart–Postnikov 的 Bruhat-cover 条件。</p>
-            <p>路径系数是 (−1)<sup>f⁻</sup>(q − q⁻¹)<sup>f</sup>，不是 wt(p)。未跟踪 extended-affine Ω 分层，因此不输出 wt(p) 或 φ(p)。</p>
-            <a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Ram §3.1、Theorem 3.3、Remark 3.5 ↗</a>
+          <details class="ram-rules"><summary>Crossing / folding rules</summary>
+            <p>The positive side is x &gt; n, y &gt; n, or x + y &gt; n for the actual wall, independently of its color or type.</p>
+            <table><thead><tr><th>Reference</th><th>Current side</th><th>Allowed moves</th></tr></thead><tbody><tr><td>+</td><td>Negative</td><td>cᵢ⁺</td></tr><tr><td>+</td><td>Positive</td><td>cᵢ⁻ or fᵢ⁺</td></tr><tr><td>−</td><td>Positive</td><td>cᵢ⁻</td></tr><tr><td>−</td><td>Negative</td><td>cᵢ⁺ or fᵢ⁻</td></tr></tbody></table>
+            <p>A fold stays in the same alcove. The next wall is found in the current alcove. Positive Folding Mode requires all reference crossings to be +; actual crossings may still be −.</p>
+            <p>With w = e, no first fold is allowed. Other starting directions may allow folds. This mode imposes no Lenart–Postnikov Bruhat-cover condition.</p>
+            <p>The path coefficient is (−1)<sup>f⁻</sup>(q − q⁻¹)<sup>f</sup>, distinct from wt(p). Extended-affine Ω sheets are not tracked, so wt(p) and φ(p) are not reported.</p>
+            <a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Ram §3.1, Theorem 3.3, Remark 3.5 ↗</a>
           </details>
         </section>
         <section id="lp-panel" class="side-section lp-panel" aria-labelledby="lp-heading" hidden>
           <div class="side-label-row"><h3 id="lp-heading">LP Admissible Foldings</h3><span class="lp-feature-tag">K-THEORY</span></div>
-          <p class="lp-intro">几何起点固定为 A₀；u 只指定有限 Bruhat 链的起点。</p>
-          <div class="lp-origin-note"><strong>几何状态从 A₀ 开始</strong><span>Bruhat 状态从 u 开始；两者独立记录。</span></div>
+          <p class="lp-intro">Every geometric path starts at A₀. The input u specifies only the start of the finite Bruhat chain.</p>
+          <div class="lp-origin-note"><strong>Geometry starts at A₀</strong><span>The Bruhat state starts at u. Both states are tracked independently.</span></div>
           <form id="lp-form" class="lp-form">
-            <div class="lp-weight-title">λ = aω₁ + bω₂ <span>参考终点 A₀ − λ</span></div>
+            <div class="lp-weight-title">λ = aω₁ + bω₂ <span>Reference endpoint A₀ − λ</span></div>
             <div class="lp-weight-fields">
-              <label for="lp-a">a<input id="lp-a" type="number" value="1" step="1" required aria-label="LP 参考 weight 的 ω₁ 系数 a" /></label>
-              <label for="lp-b">b<input id="lp-b" type="number" value="0" step="1" required aria-label="LP 参考 weight 的 ω₂ 系数 b" /></label>
+              <label for="lp-a">a<input id="lp-a" type="number" value="1" step="1" required aria-label="LP reference weight coefficient a of ω₁" /></label>
+              <label for="lp-b">b<input id="lp-b" type="number" value="0" step="1" required aria-label="LP reference weight coefficient b of ω₂" /></label>
             </div>
             <label for="lp-u">Schubert input u / Bruhat-chain start</label>
             <select id="lp-u" aria-describedby="lp-u-note">
@@ -138,104 +138,117 @@
               <option value="132">132 · s₂</option>
               <option value="231">231 · s₁s₂</option>
               <option value="312">312 · s₂s₁</option>
-              <option value="321" selected>321 · w₀ = s₁s₂s₁（默认）</option>
+              <option value="321" selected>321 · w₀ = s₁s₂s₁ (default)</option>
             </select>
-            <p id="lp-u-note" class="hint">选择 u 不会移动几何起点，也不会添加路径前缀。</p>
-            <details class="lp-custom-reference"><summary>指定参考 reduced word（可选）</summary><label for="lp-reference-input">从 A₀ 到 A₀ − λ 的墙类型序列</label><input id="lp-reference-input" type="text" placeholder="留空自动生成；ω₁ 示例为 1 2" spellcheck="false" /><p class="hint">约化性按实际 affine hyperplane 检查；墙类型可以重复。最多 60 步。</p></details>
-            <button type="submit" class="dark-button lp-configure">固定 LP 参考路径</button>
+            <p id="lp-u-note" class="hint">Choosing u does not move the geometric start or add a path prefix.</p>
+            <details class="lp-custom-reference"><summary>Custom reduced reference word (optional)</summary><label for="lp-reference-input">Wall-type sequence from A₀ to A₀ − λ</label><input id="lp-reference-input" type="text" placeholder="Leave blank to generate; the ω₁ example is 1 2" spellcheck="false" /><p class="hint">Reducedness is checked using actual affine hyperplanes. Wall types may repeat. Up to 60 steps.</p></details>
+            <button type="submit" class="dark-button lp-configure">Set LP reference path</button>
           </form>
-          <button id="lp-demo" type="button" class="lp-demo">载入 Example 15.6</button>
+          <button id="lp-demo" type="button" class="lp-demo">Load Example 15.6</button>
           <p id="lp-error" class="weight-error" role="alert"></p>
           <div id="lp-work" hidden>
             <div class="lp-reference"><p id="lp-reference-summary"></p><p id="lp-reference-roots"></p></div>
             <div class="lp-step-panel">
-              <div class="side-label-row"><h3>当前一步</h3><span id="lp-progress" class="lp-progress" role="status" aria-live="polite"></span></div>
+              <div class="side-label-row"><h3>Current step</h3><span id="lp-progress" class="lp-progress" role="status" aria-live="polite"></span></div>
               <dl class="lp-step-data">
-                <div><dt>当前实际 alcove</dt><dd id="lp-current"></dd></div>
-                <div><dt>位置 / 类型 / 实际墙</dt><dd id="lp-next-wall"></dd></div>
-                <div class="lp-reference-row"><dt>原参考根 / 反射</dt><dd id="lp-reference-reflection"></dd></div>
-                <div><dt>当前 Bruhat 元素 v</dt><dd id="lp-v"></dd></div>
-                <div><dt>候选 v r̄ₖ</dt><dd id="lp-candidate"></dd></div>
-                <div><dt>长度比较</dt><dd id="lp-lengths"></dd></div>
+                <div><dt>Actual current alcove</dt><dd id="lp-current"></dd></div>
+                <div><dt>Position / type / actual wall</dt><dd id="lp-next-wall"></dd></div>
+                <div class="lp-reference-row"><dt>Original reference root / reflection</dt><dd id="lp-reference-reflection"></dd></div>
+                <div><dt>Current Bruhat element v</dt><dd id="lp-v"></dd></div>
+                <div><dt>Candidate v r̄ₖ</dt><dd id="lp-candidate"></dd></div>
+                <div><dt>Length comparison</dt><dd id="lp-lengths"></dd></div>
               </dl>
               <p id="lp-fold-reason" class="lp-fold-reason" role="status" aria-live="polite"></p>
-              <div class="lp-choices" role="group" aria-label="LP Crossing / Folding 选择">
+              <div class="lp-choices" role="group" aria-label="LP Crossing / Folding choices">
                 <button id="lp-cross" type="button">Cross</button><button id="lp-fold" type="button">Fold</button>
               </div>
-              <p class="hint">Cross 改变 alcove；Fold 改变 v。正负标签只作辅助显示，不参与 LP 筛选。</p>
-              <div class="lp-history"><button id="lp-undo" type="button">← Undo</button><button id="lp-reset" type="button">Reset 本条</button></div>
+              <p class="hint">Cross changes the alcove; Fold changes v. Signs are shown for reference and do not determine LP admissibility.</p>
+              <div class="lp-history"><button id="lp-undo" type="button">← Undo</button><button id="lp-reset" type="button">Reset walk</button></div>
               <p id="lp-complete-note" class="lp-complete-note" role="status" aria-live="polite"></p>
             </div>
             <div class="lp-path-summary">
               <p id="lp-positions"></p><p id="lp-chain"></p><p id="lp-output-w"></p><p id="lp-term"></p>
-              <p class="hint">最终 alcove 是几何位置；输出 Schubert 指标 w 是有限排列，两者不是同一个对象。</p>
+              <p class="hint">The final alcove is a geometric position. The output Schubert index w is a finite permutation. They are separate objects.</p>
             </div>
             <button id="lp-enumerate" type="button" class="dark-button lp-enumerate">Enumerate All LP Foldings</button>
             <div id="lp-family" hidden>
               <div class="family-total"><span>u-admissible foldings</span><strong id="lp-total">0</strong></div>
-              <label class="switch-line family-overlay"><span>叠加本页路径</span><input id="lp-overlay" type="checkbox" checked /></label>
+              <label class="switch-line family-overlay"><span>Overlay this page</span><input id="lp-overlay" type="checkbox" checked /></label>
               <p id="lp-page-info" class="hint" role="status" aria-live="polite"></p>
-              <div id="lp-list" class="lp-list" aria-label="LP admissible folding 路径列表"></div>
-              <div class="family-pagination"><button id="lp-prev" type="button">← 上一页</button><button id="lp-next" type="button">下一页 →</button></div>
-              <form id="lp-jump-form" class="family-jump-form"><label for="lp-jump">跳至路径</label><input id="lp-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="LP 路径编号，从 1 开始" /><button type="submit">跳转</button></form>
-              <p class="hint">不同 J 分别保留，不按最终 alcove 或 w 去重。整批 JSON 导出最多 10,000 条。</p>
-              <button id="lp-export-all" type="button" class="wide-outline">导出全部 LP 路径 JSON</button>
+              <div id="lp-list" class="lp-list" aria-label="LP admissible folding walks"></div>
+              <div class="family-pagination"><button id="lp-prev" type="button">← Previous</button><button id="lp-next" type="button">Next →</button></div>
+              <form id="lp-jump-form" class="family-jump-form"><label for="lp-jump">Go to walk</label><input id="lp-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="LP walk number, starting at 1" /><button type="submit">Go</button></form>
+              <p class="hint">Every J is retained, even when final alcoves or output indices coincide. Bulk JSON export supports up to 10,000 walks.</p>
+              <button id="lp-export-all" type="button" class="wide-outline">Export all LP walks as JSON</button>
             </div>
-            <button id="lp-export-selected" type="button" class="wide-outline">导出当前 LP folding</button>
+            <button id="lp-export-selected" type="button" class="wide-outline">Export current LP folding</button>
           </div>
-          <details class="lp-rules"><summary>查看 LP u-admissibility 与权重</summary>
-            <p>参考路径从 A₀ 到 A₀ − λ。原参考墙的反射 rₖ 及其有限部分 r̄ₖ 固定不变。实际绘图墙则在每一步由当前 alcove 重新确定。</p>
-            <p>Cross 始终允许：g → gsᵢ，v 不变。Fold 当且仅当 ℓ(vr̄ₖ) = ℓ(v) − 1：g 不变，v → vr̄ₖ。乘法采用 (ab)(i) = a(b(i))。</p>
-            <p>贡献为 (−1)<sup>n(J)</sup>x<sup>μ(J)</sup>[O<sub>w</sub>]，其中 μ(J) = −u r<sub>j₁</sub>⋯r<sub>jₛ</sub>(−λ)，n(J) 统计所选原参考根中的负根。Dominant λ 的 reduced 参考路径下，所有贡献符号为正。</p>
-            <p>权重从指定顶点 −λ 计算；不使用 alcove 中心或参考群元素作用于 0。此模式实现 LP 的 K-theory 组合规则，不采用 Ram 的符号筛选或 q 权重，也不表示已得到 elliptic Chevalley formula。</p>
-            <a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov · Theorem 6.1、§18.1、Example 15.6 ↗</a>
+          <details class="lp-rules"><summary>LP u-admissibility and weights</summary>
+            <p>The reference runs from A₀ to A₀ − λ. Its reflections rₖ and finite parts r̄ₖ remain fixed. The actual wall is recomputed in the current alcove at every step.</p>
+            <p>Cross is always allowed: g → gsᵢ, with v unchanged. Fold is allowed exactly when ℓ(vr̄ₖ) = ℓ(v) − 1: g stays fixed and v → vr̄ₖ. Multiplication uses (ab)(i) = a(b(i)).</p>
+            <p>Each contribution is (−1)<sup>n(J)</sup>x<sup>μ(J)</sup>[O<sub>w</sub>], where μ(J) = −u r<sub>j₁</sub>⋯r<sub>jₛ</sub>(−λ). The exponent n(J) counts negative original reference roots at selected positions. For dominant λ and a reduced reference, all contributions are positive.</p>
+            <p>Weights are computed from the designated vertex −λ, rather than an alcove center or the image of 0 under the reference group element. This mode implements the LP K-theory rule without Ram sign filtering or q weights. It does not assert an elliptic Chevalley formula.</p>
+            <a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov · Theorem 6.1, §18.1, Example 15.6 ↗</a>
           </details>
         </section>
         <section id="weight-explorer-panel" class="side-section weight-explorer" aria-labelledby="weight-heading">
-          <div class="side-label-row"><h3 id="weight-heading">Weight → 折叠路径</h3><span class="feature-tag">NEW</span></div>
-          <p class="weight-equation">λ = aω₁ + bω₂ <span>终点 A₀ − λ</span></p>
+          <div class="side-label-row"><h3 id="weight-heading">Weight → Folded Walks</h3><span class="feature-tag">NEW</span></div>
+          <p class="weight-equation">λ = aω₁ + bω₂ <span>Endpoint A₀ − λ</span></p>
           <form id="weight-form" class="weight-form">
-            <label for="weight-a">a<input id="weight-a" type="number" value="1" step="1" required aria-label="基本权 ω₁ 的整数系数 a" /></label>
-            <label for="weight-b">b<input id="weight-b" type="number" value="1" step="1" required aria-label="基本权 ω₂ 的整数系数 b" /></label>
-            <button type="submit" class="dark-button">生成路径</button>
+            <label for="weight-a">a<input id="weight-a" type="number" value="1" step="1" required aria-label="Integer coefficient a of fundamental weight ω₁" /></label>
+            <label for="weight-b">b<input id="weight-b" type="number" value="1" step="1" required aria-label="Integer coefficient b of fundamental weight ω₂" /></label>
+            <button type="submit" class="dark-button">Generate paths</button>
           </form>
-          <label class="fold-rule-label" for="fold-rule">折叠规则</label>
+          <label class="fold-rule-label" for="fold-rule">Folding rule</label>
           <select id="fold-rule" class="fold-rule-select">
-            <option value="all">每墙均可折叠</option>
-            <option value="positive">仅正折叠</option>
-            <option value="ram">Ram §3.2（固定 w = e）</option>
+            <option value="all">All geometric folds</option>
+            <option value="positive">Positive folds only</option>
+            <option value="ram">Ram §3.2 (fixed w = e)</option>
           </select>
-          <p id="fold-rule-note" class="hint fold-rule-note">固定一条 reduced path 的墙类型序列，每一步选择穿墙或折回当前 alcove；折叠后的终点可以不同。</p>
-          <p class="hint weight-limit">a、b 可为正、负或零整数；参考路径最多 60 步。</p>
+          <p id="fold-rule-note" class="hint fold-rule-note">Fix the wall types of a reduced path, then cross or fold at each step. Folded walks may end at different alcoves.</p>
+          <p class="hint weight-limit">a and b may be positive, negative, or zero integers. Reference paths support up to 60 steps.</p>
           <p id="weight-error" class="weight-error" role="alert"></p>
           <div id="fold-results" hidden>
             <div class="reference-summary">
               <p id="weight-target" class="weight-target"></p>
               <p id="reference-word" class="reference-word"></p>
-              <button id="show-reference" type="button" class="wide-outline">查看 reduced path</button>
+              <button id="show-reference" type="button" class="wide-outline">View reduced path</button>
             </div>
-            <div class="family-total"><span>符合规则的路径</span><strong id="family-count">0</strong></div>
-            <label class="switch-line family-overlay"><span>叠加本页路径</span><input type="checkbox" id="show-family-overlay" checked /></label>
+            <div class="family-total"><span>Walks matching the rule</span><strong id="family-count">0</strong></div>
+            <label class="switch-line family-overlay"><span>Overlay this page</span><input type="checkbox" id="show-family-overlay" checked /></label>
             <p id="family-page-info" class="hint" role="status" aria-live="polite"></p>
-            <div id="family-list" class="family-list" aria-label="折叠路径列表"></div>
-            <div class="family-pagination"><button id="family-prev" type="button">← 上一页</button><button id="family-next" type="button">下一页 →</button></div>
-            <form id="family-jump-form" class="family-jump-form"><label for="family-jump">跳至路径</label><input id="family-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="跳转到路径编号，从 1 开始" /><button type="submit">跳转</button></form>
-            <p class="hint family-pagination-note">总数精确计算，每页 8 条；按需加载，不截断路径集合。</p>
-            <button id="leave-family" type="button" class="wide-outline">返回自由绘制</button>
+            <div id="family-list" class="family-list" aria-label="Folded walks"></div>
+            <div class="family-pagination"><button id="family-prev" type="button">← Previous</button><button id="family-next" type="button">Next →</button></div>
+            <form id="family-jump-form" class="family-jump-form"><label for="family-jump">Go to walk</label><input id="family-jump" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="Walk number, starting at 1" /><button type="submit">Go</button></form>
+            <p class="hint family-pagination-note">Exact totals, eight walks per page. Walks are loaded on demand; the family is never truncated.</p>
+            <button id="leave-family" type="button" class="wide-outline">Return to Free Drawing</button>
           </div>
         </section>
-        <div class="stats"><div><strong id="step-count">0</strong><span>行走步数</span></div><div><strong id="length-count">0</strong><span>最短距离</span></div><div><strong id="unique-count">1</strong><span>不同 alcove</span></div></div>
+        <div class="stats"><div><strong id="step-count">0</strong><span>Steps</span></div><div><strong id="length-count">0</strong><span>Shortest distance</span></div><div><strong id="unique-count">1</strong><span>Distinct alcoves</span></div></div>
 
-        <section class="side-section"><div class="side-label-row"><h3>当前反射字</h3><span class="metric-tag" id="reduced-badge">约化路线</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">终点 A₀</span><button class="link-action" id="copy-word">▣ 复制反射字</button></div><div class="triple-buttons"><button id="undo-btn">↶ 撤销</button><button id="redo-btn">↷ 重做</button><button id="clear-btn">◴ 清空</button></div><p class="hint">允许回走；回走会保留为新的一步。</p></section>
-        <section class="side-section"><h3>输入反射字</h3><form id="word-form" class="word-form"><input type="text" id="word-input" placeholder="例如 0 2 1 2 或 s₀ s₂ s₁ s₂" aria-label="输入 s0 s1 s2 反射字" spellcheck="false" /><button type="submit" class="dark-button">绘制</button></form><div class="side-label-row examples-label"><h3>示例路线</h3><span>预设反射字</span></div><div class="example-row"><select id="example-select" aria-label="选择示例路线"><option value="">选择一条示例路线</option><option value="0,2,1,2">Example 2.19 (a): s₀s₂s₁s₂</option><option value="1,0,2">示例 · s₁s₀s₂</option><option value="0,1,0">示例 · s₀s₁s₀</option><option value="0,2,0">示例 · s₀s₂s₀</option><option value="1,2,1,0">示例 · s₁s₂s₁s₀</option><option value="2,0,1,2">示例 · s₂s₀s₁s₂</option></select><button id="load-example">载入</button></div></section>
-        <section class="side-section"><div class="side-label-row"><h3>逐步记录</h3><span>起点 → 终点</span></div><ol id="walk-log" class="walk-log"></ol></section>
-        <section class="side-section settings"><h3>绘制选项</h3><label class="switch-line"><span>吸附到 alcove 中心</span><input type="checkbox" id="snap-checkbox" checked /></label><p class="hint">取消吸附后，点会放在实际点击的位置，仍按 alcove 的共边关系判定是否合法。</p><button id="export-json" class="wide-outline">⇩ 导出路径 JSON</button></section>
+        <section class="side-section"><div class="side-label-row"><h3>Current word</h3><span class="metric-tag" id="reduced-badge">Reduced path</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">Endpoint A₀</span><button class="link-action" id="copy-word">▣ Copy word</button></div><div class="triple-buttons"><button id="undo-btn">↶ Undo</button><button id="redo-btn">↷ Redo</button><button id="clear-btn">◴ Clear</button></div><p class="hint">Backtracking is allowed and counts as a new step.</p></section>
+        <section class="side-section"><h3>Enter a word</h3><form id="word-form" class="word-form"><input type="text" id="word-input" placeholder="For example, 0 2 1 2 or s₀ s₂ s₁ s₂" aria-label="Enter an s0 s1 s2 word" spellcheck="false" /><button type="submit" class="dark-button">Draw</button></form><div class="side-label-row examples-label"><h3>Example paths</h3><span>Preset words</span></div><div class="example-row"><select id="example-select" aria-label="Choose an example path"><option value="">Choose an example path</option><option value="0,2,1,2">Example 2.19 (a): s₀s₂s₁s₂</option><option value="1,0,2">Example · s₁s₀s₂</option><option value="0,1,0">Example · s₀s₁s₀</option><option value="0,2,0">Example · s₀s₂s₀</option><option value="1,2,1,0">Example · s₁s₂s₁s₀</option><option value="2,0,1,2">Example · s₂s₀s₁s₂</option></select><button id="load-example">Load</button></div></section>
+        <section class="side-section"><div class="side-label-row"><h3>Step log</h3><span>Start → Endpoint</span></div><ol id="walk-log" class="walk-log"></ol></section>
+        <section class="side-section settings"><h3>Drawing options</h3><label class="switch-line"><span>Snap to alcove centers</span><input type="checkbox" id="snap-checkbox" checked /></label><p class="hint">With snapping off, nodes follow your clicks. Moves must still cross a shared alcove wall.</p><button id="export-json" class="wide-outline">⇩ Export path JSON</button></section>
       </aside>
     </main>
-    <footer class="site-footer"><span>万格亲而画，为思考留迹。</span><span>Type A₂ · Coxeter complex · 可本地运行</span></footer>
+    <footer class="site-footer"><span>Trace the grid. Make room for thought.</span><span>Type A₂ · Coxeter complex · Runs locally</span></footer>
   </div>
   <div class="toast" role="status" id="toast" aria-live="polite"></div>
-  <dialog id="help-dialog" class="help-dialog"><div class="dialog-heading"><h2>使用 Alcove Studio</h2><button id="help-close" aria-label="关闭">✕</button></div><p>黄色三角形是 fundamental alcove <strong>A₀</strong>，三条不同颜色的边是 <strong>s₀ / s₁ / s₂</strong> 型墙。点击当前 alcove 共边的浅绿色三角形即可增加一步。路线保留回走和重复经过的 alcove。</p><p>滚轮围绕光标位置缩放；按住空格拖动画布，或切换到手掌模式。Ctrl/⌘+Z 撤销，Ctrl/⌘+Shift+Z 重做。</p><p>输入反射字采用 <strong>右乘</strong> 约定：从 A₀ 开始，每次穿越标记为 sᵢ 的墙，终点由 w ↦ wsᵢ 确定。</p><p><strong>Weight 与折叠：</strong>输入 λ = aω₁ + bω₂，得到从 A₀ 到 A₀ − λ 的一条 reduced path。折叠会触及当前墙并返回同一个 alcove；后续步骤仍按原墙类型序列，在当前 alcove 寻找下一面墙。折叠路径不必结束于 A₀ − λ。</p><p><strong>独立 Ram 模式：</strong>参考终点使用 A₀ + λ，起点可选择有限 Weyl 群的任意 wA₀。固定参考路径后，每一步高亮实际墙并显示合法 crossing / folding 选择，也可枚举全部合法路径。自由绘制区域原有 A₀ − λ 工具保持不变。</p><p><strong>规则区别：</strong>“每墙均可折叠”允许所有穿墙 / 折叠选择；“仅正折叠”要求折叠留在墙的正侧。Ram §3.2 的 Theorem 3.3 要求第 k 步的折叠符号等于参考穿墙符号 εₖ；以 A₀ 为起点（w = e）并使用同一参考路径时，只有原始不折叠路径满足该条件。上述 Ram 与几何模式没有加入 Lenart–Postnikov 的 Bruhat cover 条件。</p><p><strong>独立 LP 模式：</strong>所有几何路径从 A₀ 出发；Schubert input u 是独立的有限 Bruhat 链起点。参考终点使用 A₀ − λ，Cross 始终允许，Fold 当且仅当 ℓ(vr̄ₖ) = ℓ(v) − 1。Bruhat 检验使用原参考墙的有限反射，绘图使用当前实际墙；二者不会混用。可载入 Example 15.6 查看三个合法折叠集合。</p><p class="source-note">LP K-theory 规则：<a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov，Theorem 6.1、Definition 18.5、Example 15.6</a>。</p><p class="source-note">折叠定义与带符号规则：<a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Arun Ram, §3.1–3.2，Theorem 3.3</a>。</p><p class="source-note">参照：<a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf，第 75 页</a>，以及第 19 页 Example 2.19。</p><div class="dialog-action"><button id="help-ok" class="dark-button">开始使用</button></div></dialog>
+  <dialog id="help-dialog" class="help-dialog">
+    <div class="dialog-heading"><h2>Using Alcove Studio</h2><button id="help-close" aria-label="Close">✕</button></div>
+    <p>The yellow triangle is the fundamental alcove <strong>A₀</strong>. Its colored edges have wall types <strong>s₀ / s₁ / s₂</strong>. Click a pale green neighbor across a shared wall to add a step. Backtracking and revisiting an alcove are allowed.</p>
+    <p>Scroll to zoom around the pointer. Hold Space and drag, or select the hand tool, to pan. Use Ctrl/⌘+Z to undo and Ctrl/⌘+Shift+Z to redo in Free Drawing mode.</p>
+    <p>Words use <strong>right multiplication</strong>: starting at A₀, crossing a type-sᵢ wall updates w ↦ wsᵢ.</p>
+    <p><strong>Weights and geometric folds:</strong> Enter λ = aω₁ + bω₂ to generate a reduced reference from A₀ to A₀ − λ. A fold touches the wall and returns to the same alcove. Subsequent walls are found in the current alcove using the remaining wall types. Folded walks may have different endpoints.</p>
+    <p><strong>Ram mode:</strong> The reference endpoint is A₀ + λ, and the actual starting alcove can be any finite Weyl translate wA₀. Set the reference path, then choose an allowed crossing or fold at each highlighted wall, or enumerate all legal walks.</p>
+    <p><strong>Ram and geometric rules:</strong> All geometric folds allow either move at every step. Positive folds must stay on the positive side of the wall. Ram Theorem 3.3 requires a fold sign to equal the reference crossing sign εₖ. With w = e, no first fold is allowed, so only the reference walk remains. These rules impose no LP Bruhat-cover condition.</p>
+    <p><strong>LP mode:</strong> Every geometric path starts at A₀; the Schubert input u independently starts the finite Bruhat chain. The reference endpoint is A₀ − λ. Cross is always allowed. Fold is allowed exactly when ℓ(vr̄ₖ) = ℓ(v) − 1. Admissibility uses the original reference reflection, while drawing uses the current actual wall. Load Example 15.6 to see its three legal folding sets.</p>
+    <p class="source-note">LP K-theory rules: <a href="https://math.mit.edu/~apost/papers/kchevalley-v2.pdf" target="_blank" rel="noreferrer">Lenart–Postnikov, Theorem 6.1, Definition 18.5, Example 15.6</a>.</p>
+    <p class="source-note">Signed crossing and folding rules: <a href="https://arxiv.org/pdf/math/0601343#page=13" target="_blank" rel="noreferrer">Arun Ram, §3.1–3.2, Theorem 3.3</a>.</p>
+    <p class="source-note">Diagram reference: <a href="https://cubicbear.github.io/doc/affineNotes.pdf#page=75" target="_blank" rel="noreferrer">affineNotes.pdf, p. 75</a>; example paths: Example 2.19, p. 19.</p>
+    <div class="dialog-action"><button id="help-ok" class="dark-button">Start exploring</button></div>
+  </dialog>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
