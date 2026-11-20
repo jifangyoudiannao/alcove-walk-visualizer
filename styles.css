@@ -184,3 +184,80 @@
 .canvas-footer span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .canvas-footer span:last-child{flex:none}
 .ram-step-data dt{max-width:44%}
+
+.free-paths-panel {
+  padding: 0 0 15px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e4e5dc;
+}
+.free-path-heading, .free-fold-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.free-path-heading h3 { font-size: 14px; color: #3b3a33; }
+.clear-free-paths {
+  background: none;
+  border: 0;
+  padding: 5px 0 5px 8px;
+  font-size: 12px;
+  color: #6a675d;
+}
+.clear-free-paths:not(:disabled):hover { text-decoration: underline; }
+.free-path-picker, #free-path-list, .free-fold-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.free-path-picker { margin: 8px 0 14px; }
+.free-path-picker button, .free-fold-buttons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 9px;
+  min-height: 32px;
+  border: 1px solid #d9d9cf;
+  border-radius: 6px;
+  background: #fffefb;
+  color: #4b493f;
+  font-size: 13px;
+  white-space: nowrap;
+}
+#free-path-list i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--path-color);
+}
+#free-path-list [aria-pressed="true"] {
+  border-color: var(--path-color);
+  box-shadow: inset 0 0 0 1px var(--path-color);
+  font-weight: 700;
+}
+#add-free-path { border-style: dashed; }
+.free-path-picker button:hover, .free-fold-buttons button:hover { background: #f1f0e9; }
+.free-fold-row { justify-content: flex-start; gap: 12px; }
+#free-fold-label { color: #57564e; font-size: 13px; }
+.free-fold-buttons button {
+  min-width: 36px;
+  padding: 2px 9px;
+  font: 16px Georgia, serif;
+}
+.free-fold-buttons button::before {
+  content: "";
+  width: 9px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--wall-color);
+}
+[data-free-fold="0"] { --wall-color: #709967; }
+[data-free-fold="1"] { --wall-color: #cb8290; }
+[data-free-fold="2"] { --wall-color: #6798bf; }
+.tool-button.fold-tool { font-size: 12px; padding-inline: 6px; }
+@media (max-width: 400px) {
+  .float-toolbar { gap: 1px; }
+  .tool-button.fold-tool { padding-inline: 3px; }
+}

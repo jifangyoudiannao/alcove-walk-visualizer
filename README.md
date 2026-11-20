@@ -14,12 +14,18 @@ An interactive alcove walk visualizer for the affine Coxeter complex of type \(\
 - Independent **Ram Alcove Walk Mode**: choose a reference to \(A_0+\lambda\), start at any of the six finite-Weyl alcoves \(wA_0\), execute only legal crossings/folds, or enumerate every legal walk.
 - Independent **LP Admissible Foldings**: keep the geometry at \(A_0\), choose a Schubert input \(u\in S_3\), and enumerate exactly the decreasing Bruhat-cover foldings of a reference to \(A_0-\lambda\), with equivariant K-theory terms.
 - The earlier \(A_0-\lambda\) explorer retains all geometric folds, positive folds, and the fixed-start \(w=e\) Ram specialization. Exact counts and pagination preserve the complete family.
-- Click an adjacent alcove to add a point, arrow, and numbered step. Only edge-adjacent moves are allowed. Return moves are recorded rather than erased.
+- Draw several paths on the same grid, each in its own color. Click an adjacent alcove to cross its shared wall or fold at any wall of the current alcove.
 - Optional snap-to-center, pan (space + drag or hand tool), wheel zoom, recenter, fit path.
 - Coxeter word, shortest gallery length, reduced/non-reduced indication, visited alcove count, step log.
 - Enter a word such as `0 2 1 2` or `s₀ s₂ s₁ s₂` and draw its full gallery.
 - Undo/redo, localStorage persistence, copy word, download JSON, download the **complete route** as SVG.
 - No backend or account required; the app runs locally and offline except for optional Google Fonts.
+
+## Free Drawing
+
+Click an adjacent alcove to cross its shared wall. To fold, click one of the three **Fold at wall** buttons, or select **Fold** in the canvas toolbar and click the wall or the alcove across it. The turnaround counts as one step and leaves the path in its current alcove. Press **D** to resume drawing crossings.
+
+Choose **New path** to start a second path at \(A_0\). Each path has a matching color on the canvas and in the path picker. Select a path name to continue drawing it, inspect its log, or undo its last step. **Clear path** resets the selected path. **Clear all paths** clears the free drawing and starts a fresh path at \(A_0\).
 
 ## Local setup
 
@@ -174,7 +180,7 @@ All paths satisfy \(|J|=\ell(u)-\ell(w(J))\); this is an output check, while adm
 
 The mode implements the LP **K-theory** combination rule. It does not use Ram's \((q-q^{-1})^{|J|}\) factor, and it does not claim an elliptic Chevalley formula. The tests include the exact Example 15.6, the \(u=e\) specialization, the length identity, and comparison with independent enumeration of all folding subsets.
 
-Validation: `npm test` passes all 41 tests (11 LP tests plus 30 existing tests). The independent subset oracle compares 150 families (25 signed weights and all six inputs) and 628 complete paths, including every operation, alcove, Bruhat chain, and output index. A separate ambient-coordinate oracle checks the equivariant exponents and signs, including nonzero affine levels. Browser checks cover manual choices, forbidden folds, undo/reset, mode isolation, persistence, pagination, custom references, and JSON/SVG exports.
+The LP tests compare 150 families (25 signed weights and all six inputs) and 628 complete paths against an independent subset oracle, including every operation, alcove, Bruhat chain, and output index. A separate ambient-coordinate oracle checks the equivariant exponents and signs, including nonzero affine levels. Browser checks cover manual choices, forbidden folds, undo/reset, mode isolation, persistence, pagination, custom references, and JSON/SVG exports.
 
 ## References
 

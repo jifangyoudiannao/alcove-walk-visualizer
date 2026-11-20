@@ -29,7 +29,8 @@
           <div><button id="ram-popup-cross" type="button">Crossing</button><button id="ram-popup-fold" type="button">Folding</button></div>
         </div>
         <div class="float-toolbar" role="toolbar" aria-label="Drawing tools">
-          <button class="tool-button selected" data-tool="draw" title="Draw mode (D)">✎</button>
+          <button class="tool-button selected" data-tool="draw" aria-label="Draw crossings (D)" title="Draw crossings (D)">✎</button>
+          <button type="button" class="tool-button fold-tool" data-tool="fold" title="Fold at a wall (F)" aria-label="Fold at a wall">Fold</button>
           <button class="tool-button" data-tool="pan" title="Pan canvas (H)">✋</button>
           <div class="tool-split"></div>
           <button class="tool-button" id="zoom-out" title="Zoom out">−</button>
@@ -45,10 +46,28 @@
       <aside class="sidebar">
         <div class="sidebar-header"><div class="overline">PATH BUILDER</div><div class="sidebar-title-row"><h2>Your Alcove Walk</h2><span class="live-dot"><i></i>Free Drawing</span></div></div>
         <nav class="mode-switch" aria-label="Alcove walk modes">
-          <button id="open-free-mode" type="button" class="selected" aria-pressed="true">Free Drawing</button>
+          <button id="open-free-mode" type="button" aria-pressed="true">Free Drawing</button>
           <button id="open-ram-mode" type="button" aria-pressed="false">Ram Alcove Walk Mode</button>
           <button id="open-lp-mode" type="button" class="lp-mode-tab" aria-pressed="false">LP Admissible Foldings</button>
         </nav>
+        <section id="free-paths-panel" class="free-paths-panel" aria-labelledby="free-paths-heading">
+          <div class="free-path-heading">
+            <h3 id="free-paths-heading">Drawing paths</h3>
+            <button id="clear-free-paths" type="button" class="clear-free-paths">Clear all paths</button>
+          </div>
+          <div class="free-path-picker">
+            <div id="free-path-list" role="group" aria-label="Select a path to edit"></div>
+            <button id="add-free-path" type="button"><span aria-hidden="true">+</span> New path</button>
+          </div>
+          <div class="free-fold-row">
+            <span id="free-fold-label">Fold at wall</span>
+            <div class="free-fold-buttons" role="group" aria-labelledby="free-fold-label">
+              <button type="button" data-free-fold="0" aria-label="Fold at wall s₀">s₀</button>
+              <button type="button" data-free-fold="1" aria-label="Fold at wall s₁">s₁</button>
+              <button type="button" data-free-fold="2" aria-label="Fold at wall s₂">s₂</button>
+            </div>
+          </div>
+        </section>
         <section id="ram-panel" class="side-section ram-panel" aria-labelledby="ram-heading" hidden>
           <div class="side-label-row"><h3 id="ram-heading">Ram Alcove Walk Mode</h3><span class="feature-tag">A₂</span></div>
           <p class="ram-intro">Fix a reference path, then cross or fold step by step from wA₀.</p>
@@ -226,10 +245,10 @@
         </section>
         <div class="stats"><div><strong id="step-count">0</strong><span>Steps</span></div><div><strong id="length-count">0</strong><span>Shortest distance</span></div><div><strong id="unique-count">1</strong><span>Distinct alcoves</span></div></div>
 
-        <section class="side-section"><div class="side-label-row"><h3>Current word</h3><span class="metric-tag" id="reduced-badge">Reduced path</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">Endpoint A₀</span><button class="link-action" id="copy-word">▣ Copy word</button></div><div class="triple-buttons"><button id="undo-btn">↶ Undo</button><button id="redo-btn">↷ Redo</button><button id="clear-btn">◴ Clear</button></div><p class="hint">Backtracking is allowed and counts as a new step.</p></section>
+        <section class="side-section"><div class="side-label-row"><h3>Current word</h3><span class="metric-tag" id="reduced-badge">Reduced path</span></div><div id="word-chips" class="word-chips"><span class="empty-word">e</span></div><div class="endpoint"><span id="endpoint-label">Endpoint A₀</span><button class="link-action" id="copy-word">▣ Copy word</button></div><div class="triple-buttons"><button id="undo-btn">↶ Undo</button><button id="redo-btn">↷ Redo</button><button id="clear-btn" title="Clear the selected free drawing path">Clear path</button></div><p class="hint">Backtracking is allowed and counts as a new step.</p></section>
         <section class="side-section"><h3>Enter a word</h3><form id="word-form" class="word-form"><input type="text" id="word-input" placeholder="For example, 0 2 1 2 or s₀ s₂ s₁ s₂" aria-label="Enter an s0 s1 s2 word" spellcheck="false" /><button type="submit" class="dark-button">Draw</button></form><div class="side-label-row examples-label"><h3>Example paths</h3><span>Preset words</span></div><div class="example-row"><select id="example-select" aria-label="Choose an example path"><option value="">Choose an example path</option><option value="0,2,1,2">Example 2.19 (a): s₀s₂s₁s₂</option><option value="1,0,2">Example · s₁s₀s₂</option><option value="0,1,0">Example · s₀s₁s₀</option><option value="0,2,0">Example · s₀s₂s₀</option><option value="1,2,1,0">Example · s₁s₂s₁s₀</option><option value="2,0,1,2">Example · s₂s₀s₁s₂</option></select><button id="load-example">Load</button></div></section>
         <section class="side-section"><div class="side-label-row"><h3>Step log</h3><span>Start → Endpoint</span></div><ol id="walk-log" class="walk-log"></ol></section>
-        <section class="side-section settings"><h3>Drawing options</h3><label class="switch-line"><span>Snap to alcove centers</span><input type="checkbox" id="snap-checkbox" checked /></label><p class="hint">With snapping off, nodes follow your clicks. Moves must still cross a shared alcove wall.</p><button id="export-json" class="wide-outline">⇩ Export path JSON</button></section>
+        <section class="side-section settings"><h3>Drawing options</h3><label class="switch-line"><span>Snap to alcove centers</span><input type="checkbox" id="snap-checkbox" checked /></label><p class="hint">With snapping off, crossing nodes follow your clicks inside adjacent alcoves.</p><button id="export-json" class="wide-outline">⇩ Export path JSON</button></section>
       </aside>
     </main>
     <footer class="site-footer"><span>Trace the grid. Make room for thought.</span><span>Type A₂ · Coxeter complex · Runs locally</span></footer>
@@ -238,6 +257,8 @@
   <dialog id="help-dialog" class="help-dialog">
     <div class="dialog-heading"><h2>Using Alcove Studio</h2><button id="help-close" aria-label="Close">✕</button></div>
     <p>The yellow triangle is the fundamental alcove <strong>A₀</strong>. Its colored edges have wall types <strong>s₀ / s₁ / s₂</strong>. Click a pale green neighbor across a shared wall to add a step. Backtracking and revisiting an alcove are allowed.</p>
+    <p>In Free Drawing, choose a wall under <strong>Fold at wall</strong> to touch it and return to the current alcove. To choose on the grid, select <strong>Fold</strong> in the toolbar and click the wall or the neighbor across it. Press <strong>D</strong> to resume crossing.</p>
+    <p><strong>New path</strong> starts another colored path at A₀. Click a path name to edit it and see its step log. <strong>Clear path</strong> clears the selected path. <strong>Clear all paths</strong> clears the entire free drawing.</p>
     <p>Scroll to zoom around the pointer. Hold Space and drag, or select the hand tool, to pan. Use Ctrl/⌘+Z to undo and Ctrl/⌘+Shift+Z to redo in Free Drawing mode.</p>
     <p>Words use <strong>right multiplication</strong>: starting at A₀, crossing a type-sᵢ wall updates w ↦ wsᵢ.</p>
     <p><strong>Weights and geometric folds:</strong> Enter λ = aω₁ + bω₂ to generate a reduced reference from A₀ to A₀ − λ. A fold touches the wall and returns to the same alcove. Subsequent walls are found in the current alcove using the remaining wall types. Folded walks may have different endpoints.</p>

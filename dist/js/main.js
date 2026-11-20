@@ -1,5 +1,6 @@
 import { A0, alcoveKey, center, coxeterLength, crossedWall, edges, formatWord, fromKey, parseWord, toCartesian, toRoot, vertices, } from './math/affineA2.js';
-import { Walk } from './math/walk.js';
+import { FreePaths } from './math/freePaths.js';
+import { freeRoutesSVG } from './ui/freeRoutes.js';
 import { PROJECT_PROMPT } from './ui/prompt.js';
 import { FoldExplorer, actionLabel } from './ui/foldExplorer.js';
 import { galleryDistance } from './math/folded.js';
@@ -9,7 +10,7 @@ import { permutationKey } from './math/lp.js';
 const COLORS = ['#709967', '#cb8290', '#6798bf'];
 const SUB = ['₀', '₁', '₂'];
 const STORAGE = 'alcove-walk-visualizer:v1';
-const walk = new Walk();
+const freePaths = new FreePaths();
 const svg = document.getElementById('alcove-canvas');
 let camera = { ox: 0, oy: 0, scale: 122 };
 let cameraReady = false;
@@ -23,8 +24,15 @@ let explorer;
 let ram;
 let lp;
 function currentFoldPath() { return lp?.active ? lp.path : ram?.active ? ram.path : explorer?.active ? explorer.path : null; }
+function isFreeDrawing() { return !lp?.active && !ram?.active && !explorer?.active; }
 function syncMode() {
     const ramActive = !!ram?.active, lpActive = !!lp?.active, guided = ramActive || lpActive;
+    const free = isFreeDrawing();
+    $('free-paths-panel').hidden = !free;
+    document.querySelector('[data-tool="fold"]').hidden = !free;
+    if (!free && tool === 'fold')
+        tool = 'draw';
+    syncToolButtons();
     $('ram-panel').hidden = !ramActive;
     $('lp-panel').hidden = !lpActive;
     $('weight-explorer-panel').hidden = guided;
@@ -37,7 +45,7 @@ function displayedNodes() {
     const path = currentFoldPath();
     if (path)
         return path.nodes.map((alcove, k) => ({ alcove, point: center(alcove), via: k ? path.steps[k - 1].type : null }));
-    return walk.nodes;
+    return freePaths.active.walk.nodes;
 }
 function $(id) {
     const el = document.getElementById(id);
@@ -69,7 +77,13 @@ function mousePoint(e) {
 function initialCamera(w, h) { return { ox: w * .36, oy: h * .86, scale: 122 }; }
 function fitCamera(w, h, pad = 105, maxScale = 175) {
     // Fit the whole path in either direction; preserve the actual free-click points.
-    const pts = lp?.active ? lp.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : ram?.active ? ram.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : explorer?.active ? explorer.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : walk.nodes.map(n => n.point);
+    const guided = lp?.active ? lp : ram?.active ? ram : explorer?.active ? explorer : null;
+    const pts = guided ? guided.fitAlcoves.flatMap(a => vertices(a).map(toCartesian)) : freePaths.paths.flatMap(({ walk }) => walk.nodes.flatMap(node => {
+        if (node.action !== 'fold')
+            return [node.point];
+        const wall = edges(node.alcove).find(edge => edge.type === node.via);
+        return [node.point, toCartesian(wall.start), toCartesian(wall.end)];
+    }));
     let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
     for (const p of pts) {
         minU = Math.min(minU, p.u);
@@ -114,11 +128,11 @@ function visibleAlcoves(w, h, cam) {
         }
     return tiles;
 }
-function nodeSVG(cam, w, h) {
+function nodeSVG(cam, w, h, interactive = true) {
     const nodes = displayedNodes(), current = nodes[nodes.length - 1].alcove, steps = nodes.length - 1;
     const allowed = new Map();
-    if (!explorer?.active && !ram?.active && !lp?.active)
-        for (const edge of edges(walk.current))
+    if (interactive && isFreeDrawing())
+        for (const edge of edges(current))
             allowed.set(alcoveKey(edge.adjacent), edge.type);
     const visible = visibleAlcoves(w, h, cam);
     const uniqueEdges = new Map();
@@ -138,7 +152,8 @@ function nodeSVG(cam, w, h) {
             bg.push(`<polygon points="${poly}" fill="#c7b6e4" fill-opacity="0.65" stroke="#8b70b1" stroke-width="2"/>`);
         if (lp?.active && lp.reference && key === alcoveKey(lp.reference.target))
             bg.push(`<polygon points="${poly}" fill="#b7d6d1" fill-opacity="0.55" stroke="#488b83" stroke-width="2"/>`);
-        hits.push(`<polygon points="${poly}" data-alcove="${key}" fill="transparent" stroke="none" aria-label="alcove ${key}"/>`);
+        if (interactive)
+            hits.push(`<polygon points="${poly}" data-alcove="${key}" fill="transparent" stroke="none" aria-label="alcove ${key}"/>`);
         for (const e of edges(a))
             if (!uniqueEdges.has(edgeKey(e)))
                 uniqueEdges.set(edgeKey(e), e);
@@ -215,22 +230,13 @@ function nodeSVG(cam, w, h) {
         route.push(`<text x="${n(target.x)}" y="${n(target.y + 30)}" text-anchor="middle" font-size="12" font-family="Georgia,serif" fill="#735295" paint-order="stroke" stroke="#fbfaf7" stroke-width="3">A₀ − λ</text>`);
     }
     else {
-        for (let k = 1; k < nodes.length; k++) {
-            const a = scenePoint(nodes[k - 1].point, cam), b = scenePoint(nodes[k].point, cam);
-            const len = Math.hypot(b.x - a.x, b.y - a.y);
-            if (len < 0.01)
-                continue;
-            const margin = Math.min(16, len * .25);
-            const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
-            route.push(`<path d="M ${n(a.x + ux * margin)} ${n(a.y + uy * margin)} L ${n(b.x - ux * margin)} ${n(b.y - uy * margin)}" fill="none" stroke="#303834" stroke-width="2.65" stroke-linecap="round" marker-end="url(#walk-arrow)"/>`);
-        }
-        // Draw nodes *after* the route; number is legible even after crossing.
-        for (let k = 0; k < nodes.length; k++) {
-            const p = scenePoint(nodes[k].point, cam), start = k === 0, current = k === steps;
-            const fill = start ? '#dfb453' : '#343d38';
-            route.push(`<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${current ? 14 : 12.7}" fill="#fffefa" fill-opacity=".93"/>`);
-            route.push(`<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${current ? 10.7 : 9.7}" fill="${fill}" stroke="${current ? '#fff' : fill}" stroke-width="1"/>`);
-            route.push(`<text x="${n(p.x)}" y="${n(p.y + .8)}" dominant-baseline="middle" text-anchor="middle" font-family="'DM Sans',sans-serif" font-weight="700" font-size="${k >= 100 ? 7 : k >= 10 ? 9 : 10}" fill="white">${k}</text>`);
+        route.push(freeRoutesSVG(freePaths.paths, freePaths.active.id, p => scenePoint(p, cam), cam.scale));
+        if (interactive && tool === 'fold') {
+            for (const edge of edges(current)) {
+                const a = scenePoint(toCartesian(edge.start), cam), b = scenePoint(toCartesian(edge.end), cam);
+                const line = `x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}" y2="${n(b.y)}"`;
+                hits.push(`<line ${line} stroke="${COLORS[edge.type]}" stroke-width="3.5" pointer-events="none"/><line ${line} data-fold-wall="${edge.type}" stroke="transparent" stroke-width="${n(Math.min(18, cam.scale * .28))}" pointer-events="stroke"><title>Fold at s${SUB[edge.type]} · ${edge.equation}</title></line>`);
+            }
         }
     }
     return `<defs><marker id="walk-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#303834"/></marker><marker id="fold-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a3558b"/></marker></defs><rect width="${w}" height="${h}" fill="#fbfaf7"/><g>${bg.join('')}</g><g>${grid.join('')}</g><g>${fundamental}${tags}</g><g class="hit-regions">${hits.join('')}</g><g pointer-events="none">${route.join('')}</g>`;
@@ -275,22 +281,40 @@ function render() {
     $('length-count').textContent = String(length);
     $('unique-count').textContent = String(new Set(nodes.map(nd => alcoveKey(nd.alcove))).size);
     const path = currentFoldPath();
-    const word = path ? path.steps.map(s => s.type) : walk.word;
+    const walk = freePaths.active.walk;
+    const foldCount = path?.folds ?? walk.nodes.filter(node => node.action === 'fold').length;
+    const foldSummary = `${foldCount} ${foldCount === 1 ? 'fold' : 'folds'}`;
+    if (isFreeDrawing())
+        renderFreeControls();
     const chips = $('word-chips');
-    chips.innerHTML = path ? `<span class="fold-action-word">${actionLabel(path)}</span>` : word.length ? word.map(t => `<span class="word-chip s${t}">s${SUB[t]}</span>`).join('') : '<span class="empty-word">e</span>';
+    chips.innerHTML = path ? `<span class="fold-action-word">${actionLabel(path)}</span>` : walk.steps ? walk.nodes.slice(1).map(node => {
+        const symbol = node.action === 'fold' ? 'f' : foldCount ? 'c' : 's';
+        return `<span class="word-chip s${node.via}" title="${node.action === 'fold' ? 'Fold' : 'Cross'} at s${SUB[node.via]}">${symbol}${SUB[node.via]}</span>`;
+    }).join('') : '<span class="empty-word">e</span>';
+    const showingActions = !!path || foldCount > 0;
+    $('copy-word').textContent = showingActions ? '▣ Copy steps' : '▣ Copy word';
+    chips.closest('section').querySelector('h3').textContent = showingActions ? 'Walk steps' : 'Current word';
     const badge = $('reduced-badge');
     const reduced = steps === length;
-    badge.textContent = lp?.active ? `${lp.walk?.complete ? 'Complete' : 'In progress'} · LP · ${path.folds} folds` : ram?.active ? `${ram.walk?.complete ? 'Complete' : 'In progress'} · ${path.folds} folds` : path?.folds ? `${path.folds} folds` : reduced ? 'Reduced path' : 'Nonreduced path';
+    if (lp?.active)
+        badge.textContent = `${lp.walk?.complete ? 'Complete' : 'In progress'} · LP · ${foldSummary}`;
+    else if (ram?.active)
+        badge.textContent = `${ram.walk?.complete ? 'Complete' : 'In progress'} · ${foldSummary}`;
+    else
+        badge.textContent = foldCount ? foldSummary : reduced ? 'Reduced path' : 'Nonreduced path';
     badge.classList.toggle('not-reduced', !reduced);
-    $('endpoint-label').textContent = path ? `${(ram?.active && !ram.walk?.complete) || (lp?.active && !lp.walk?.complete) ? 'Current alcove' : 'Final alcove'} ${alcoveKey(current)}` : `Endpoint A${toSubscript(steps)}`;
+    $('endpoint-label').textContent = path ? `${(ram?.active && !ram.walk?.complete) || (lp?.active && !lp.walk?.complete) ? 'Current alcove' : 'Final alcove'} ${alcoveKey(current)}` : `Path ${freePaths.active.id} · Endpoint ${alcoveKey(current)}`;
     $('undo-btn').toggleAttribute('disabled', !!path || !walk.canUndo);
     $('redo-btn').toggleAttribute('disabled', !!path || !walk.canRedo);
     $('clear-btn').toggleAttribute('disabled', !!path || walk.steps === 0);
+    const multiple = isFreeDrawing() && freePaths.paths.length > 1;
+    $('fit-btn').textContent = multiple ? '⛶ Fit paths' : '⛶ Fit path';
+    $('fit-btn').title = multiple ? 'Show all drawing paths' : 'Show the entire path';
     $('zoom-label').textContent = `${Math.round(camera.scale / 122 * 100)}%`;
-    $('canvas-footnote').textContent = path ? 'Dashed: reference · Purple: folds · Faint: page walks · Click the log to locate' : `${walk.steps} steps · Click a green neighbor to continue · Click the log to locate`;
-    $('drawing-status').textContent = lp?.active ? 'LP admissible foldings' : ram?.active ? 'Ram walk' : explorer?.active ? 'Folded walk browser' : tool === 'pan' ? 'Pan mode' : 'Draw mode';
-    document.querySelector('.canvas-heading h1').textContent = lp?.active ? 'LP Admissible Foldings' : ram?.active ? 'Ram Alcove Walk Mode' : explorer?.active ? 'Weight → reduced path → folded walks' : 'Start at A₀. Click an adjacent alcove.';
-    document.querySelector('.canvas-heading p').textContent = lp?.active ? 'Geometry starts at A₀; folds use the original reference reflections for Bruhat covers.' : ram?.active ? 'The thick line marks the current wall. Choose an allowed crossing or fold.' : explorer?.active ? 'The purple alcove is A₀ − λ. Folded walks may have different endpoints.' : 'Trace a path across the colored walls.';
+    $('canvas-footnote').textContent = path ? 'Dashed: reference · Purple: folds · Faint: page walks · Click the log to locate' : `Path ${freePaths.active.id} · ${walk.steps} steps · ${foldSummary}`;
+    $('drawing-status').textContent = lp?.active ? 'LP admissible foldings' : ram?.active ? 'Ram walk' : explorer?.active ? 'Folded walk browser' : tool === 'pan' ? 'Pan mode' : tool === 'fold' ? 'Fold mode' : 'Draw mode';
+    document.querySelector('.canvas-heading h1').textContent = lp?.active ? 'LP Admissible Foldings' : ram?.active ? 'Ram Alcove Walk Mode' : explorer?.active ? 'Weight → reduced path → folded walks' : `Free Drawing · Path ${freePaths.active.id}`;
+    document.querySelector('.canvas-heading p').textContent = lp?.active ? 'Geometry starts at A₀; folds use the original reference reflections for Bruhat covers.' : ram?.active ? 'The thick line marks the current wall. Choose an allowed crossing or fold.' : explorer?.active ? 'The purple alcove is A₀ − λ. Folded walks may have different endpoints.' : tool === 'fold' ? 'Click a highlighted wall or its neighbor to fold.' : tool === 'pan' ? 'Drag to pan. Select Draw to continue the path.' : 'Click an adjacent alcove to cross its wall.';
     const live = document.querySelector('.live-dot');
     live.innerHTML = `<i></i>${lp?.active ? 'LP mode' : ram?.active ? 'Ram mode' : explorer?.active ? 'Folded walks' : 'Free Drawing'}`;
     const next = ram?.active ? ram.next : null;
@@ -305,6 +329,7 @@ function render() {
 function toSubscript(n) { return String(n).replace(/[0-9]/g, d => '₀₁₂₃₄₅₆₇₈₉'[Number(d)]); }
 function renderLog() {
     const html = [];
+    const path = currentFoldPath();
     const nodes = displayedNodes();
     for (let k = 0; k < nodes.length; k++) {
         const nd = nodes[k];
@@ -313,28 +338,62 @@ function renderLog() {
             continue;
         }
         const previous = nodes[k - 1].alcove;
-        const foldStep = currentFoldPath()?.steps[k - 1];
-        const edge = foldStep?.wall ?? crossedWall(previous, nd.alcove);
+        const foldStep = path?.steps[k - 1];
+        const freeFold = nd.action === 'fold';
+        const edge = foldStep?.wall ?? (freeFold ? edges(previous).find(edge => edge.type === nd.via) : crossedWall(previous, nd.alcove));
         if (foldStep) {
             const side = foldStep.kind === 'fold' ? foldStep.sign : -foldStep.sign;
             html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">${foldStep.kind === 'fold' ? '↶ Fold · Stay in the current alcove' : '→ Cross'} (${foldStep.sign > 0 ? '+' : '−'})</span><br/><span class="log-subtitle">${edge?.equation} · ${alcoveKey(nd.alcove)}${lp?.active ? `<br/>Reference r̄${k} = ${permutationKey(lp.reference.reflections[k - 1].finite)} · v: ${permutationKey(lp.path.steps[k - 1].vBefore)} → ${permutationKey(lp.path.steps[k - 1].vAfter)}` : ''}${ram?.active ? `<br/>Current side ${side > 0 ? '+' : '−'} · Reference ε = ${ram.reference.signs[k - 1] > 0 ? '+' : '−'}` : ''}</span></span><span class="log-type t${nd.via}">${foldStep.kind === 'fold' ? 'f' : 'c'}${SUB[nd.via]}${foldStep.sign > 0 ? '⁺' : '⁻'}</span></li>`);
             continue;
         }
-        html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">A${toSubscript(k - 1)} → A${toSubscript(k)}</span><br/><span class="log-subtitle">${edge?.equation ?? '—'} · ${alcoveKey(nd.alcove)}</span></span><span class="log-type t${nd.via}">s${SUB[nd.via]}</span></li>`);
+        html.push(`<li data-step="${k}"><span class="log-index">${k}</span><span class="log-main"><span class="log-title">${freeFold ? 'Fold · Stay in this alcove' : `Cross · A${toSubscript(k - 1)} → A${toSubscript(k)}`}</span><br/><span class="log-subtitle">${edge?.equation ?? '—'} · ${alcoveKey(nd.alcove)}</span></span><span class="log-type t${nd.via}">${freeFold ? 'f' : 's'}${SUB[nd.via]}</span></li>`);
     }
     $('walk-log').innerHTML = html.join('');
 }
 function persist() { try {
-    localStorage.setItem(STORAGE, JSON.stringify({ nodes: walk.nodes, camera, snap }));
+    localStorage.setItem(STORAGE, JSON.stringify({ freePaths: freePaths.toJSON(), camera, snap }));
 }
 catch { /* Storage optional */ } }
 function update() { render(); persist(); }
+function syncToolButtons() {
+    for (const button of document.querySelectorAll('[data-tool]')) {
+        const selected = button.dataset.tool === tool;
+        button.classList.toggle('selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+    }
+    svg.classList.toggle('pan-cursor', tool === 'pan' || spaceHeld);
+}
 function setTool(next) {
+    if (next === 'fold' && !isFreeDrawing())
+        return;
     tool = next;
-    for (const b of document.querySelectorAll('[data-tool]'))
-        b.classList.toggle('selected', b.dataset.tool === next);
-    svg.classList.toggle('pan-cursor', next === 'pan');
-    $('drawing-status').textContent = lp?.active ? 'LP admissible foldings' : ram?.active ? 'Ram walk' : explorer?.active ? 'Folded walk browser' : next === 'pan' ? 'Pan mode' : 'Draw mode';
+    render();
+}
+function renderFreeControls() {
+    const list = $('free-path-list');
+    // Keep the path buttons in place across canvas redraws and keyboard selections.
+    if (list.childElementCount !== freePaths.paths.length) {
+        list.innerHTML = freePaths.paths.map(path => `<button type="button" data-free-path-id="${path.id}" style="--path-color:${path.color}"><i aria-hidden="true"></i>Path ${path.id}</button>`).join('');
+    }
+    for (const button of list.querySelectorAll('button')) {
+        button.setAttribute('aria-pressed', String(Number(button.dataset.freePathId) === freePaths.active.id));
+    }
+    $('clear-free-paths').toggleAttribute('disabled', freePaths.paths.length === 1 && !freePaths.active.walk.steps);
+    for (const edge of edges(freePaths.active.walk.current)) {
+        const button = document.querySelector(`[data-free-fold="${edge.type}"]`);
+        button.title = `Fold at s${SUB[edge.type]} · ${edge.equation}`;
+    }
+}
+function foldAt(type) {
+    if (!isFreeDrawing())
+        return;
+    try {
+        freePaths.active.walk.fold(type);
+        update();
+    }
+    catch (error) {
+        showToast(error.message);
+    }
 }
 function setZoom(factor, px, py) {
     const { w, h } = dims(), x = px ?? w / 2, y = py ?? h / 2;
@@ -346,7 +405,7 @@ function setZoom(factor, px, py) {
 function recenter() { const { w, h } = dims(); camera = initialCamera(w, h); update(); }
 function fitPath() { const { w, h } = dims(); camera = fitCamera(w, h); update(); }
 function onAlcoveClick(key, e) {
-    if (tool !== 'draw' || spaceHeld || draggedRecently)
+    if (tool === 'pan' || spaceHeld || draggedRecently)
         return;
     if (lp.active) {
         showToast('Use Cross / Fold for LP steps. The input u only starts the Bruhat chain.');
@@ -360,9 +419,14 @@ function onAlcoveClick(key, e) {
         showToast('Browsing folded walks. Select Return to Free Drawing to draw manually.');
         return;
     }
+    const walk = freePaths.active.walk;
     const a = fromKey(key), edge = crossedWall(walk.current, a);
     if (!edge) {
         showToast('Choose a neighbor sharing a wall with the current alcove.');
+        return;
+    }
+    if (tool === 'fold') {
+        foldAt(edge.type);
         return;
     }
     const pixel = mousePoint(e);
@@ -377,7 +441,7 @@ function onAlcoveClick(key, e) {
 }
 function loadWord(word) {
     try {
-        walk.setWord(word);
+        freePaths.active.walk.setWord(word);
         explorer.deactivate();
         ram.deactivate();
         lp.deactivate();
@@ -411,10 +475,10 @@ function download(name, content, mime) {
 function exportSVG() {
     // Export a *new* scene with a camera that fits the whole path, not the current crop.
     const w = 1200, h = 900, c = fitCamera(w, h, 115, 250);
-    const content = nodeSVG(c, w, h).replace(/<g class="hit-regions">[\s\S]*?<\/g>/, '');
+    const content = nodeSVG(c, w, h, false);
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${content}</svg>`;
     download('alcove-path-A2.svg', xml, 'image/svg+xml;charset=utf-8');
-    showToast('SVG exported with the entire path fitted to the image.');
+    showToast('SVG exported.');
 }
 function restore() {
     try {
@@ -422,8 +486,7 @@ function restore() {
         if (!text)
             return;
         const data = JSON.parse(text);
-        if (data?.nodes)
-            walk.restore(JSON.stringify(data.nodes));
+        freePaths.restore(data?.freePaths ? JSON.stringify(data.freePaths) : text);
         if (typeof data?.snap === 'boolean')
             snap = data.snap;
         if (data?.camera && ['ox', 'oy', 'scale'].every(k => Number.isFinite(data.camera[k])) && data.camera.scale >= 3 && data.camera.scale <= 500) {
@@ -477,12 +540,17 @@ svg.addEventListener('click', e => {
         return;
     }
     const target = e.target;
+    const wall = target.closest('[data-fold-wall]');
+    if (wall && tool === 'fold' && !spaceHeld) {
+        foldAt(Number(wall.dataset.foldWall));
+        return;
+    }
     const hit = target.closest('[data-alcove]');
     if (hit?.dataset.alcove)
         onAlcoveClick(hit.dataset.alcove, e);
 });
 svg.addEventListener('pointerdown', e => {
-    const hit = e.target.closest('[data-alcove]');
+    const hit = e.target.closest('[data-alcove], [data-fold-wall]');
     if (lp.active || ram.active || explorer.active || tool === 'pan' || spaceHeld || !hit) {
         drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: camera.ox, oy: camera.oy, moved: false };
         svg.setPointerCapture(e.pointerId);
@@ -519,11 +587,34 @@ $('zoom-in').addEventListener('click', () => setZoom(1.22));
 $('zoom-out').addEventListener('click', () => setZoom(1 / 1.22));
 $('recenter-btn').addEventListener('click', recenter);
 $('fit-btn').addEventListener('click', fitPath);
-$('undo-btn').addEventListener('click', () => { if (walk.undo())
+$('undo-btn').addEventListener('click', () => { if (freePaths.active.walk.undo())
     update(); });
-$('redo-btn').addEventListener('click', () => { if (walk.redo())
+$('redo-btn').addEventListener('click', () => { if (freePaths.active.walk.redo())
     update(); });
-$('clear-btn').addEventListener('click', () => { walk.clear(); update(); showToast('Cleared. Start again at A₀.'); });
+$('clear-btn').addEventListener('click', () => { freePaths.active.walk.clear(); update(); showToast(`Path ${freePaths.active.id} cleared.`); });
+$('add-free-path').addEventListener('click', () => {
+    if (!isFreeDrawing())
+        return;
+    freePaths.add();
+    tool = 'draw';
+    fitPath();
+});
+$('free-path-list').addEventListener('click', e => {
+    const button = e.target.closest('[data-free-path-id]');
+    if (button && isFreeDrawing() && freePaths.select(Number(button.dataset.freePathId)))
+        fitPath();
+});
+$('clear-free-paths').addEventListener('click', () => {
+    if (!isFreeDrawing())
+        return;
+    freePaths.clearAll();
+    tool = 'draw';
+    recenter();
+    showToast('All free-drawing paths cleared.');
+});
+for (const button of document.querySelectorAll('[data-free-fold]')) {
+    button.addEventListener('click', () => foldAt(Number(button.dataset.freeFold)));
+}
 $('snap-checkbox').addEventListener('change', e => { snap = e.target.checked; persist(); });
 $('word-form').addEventListener('submit', e => { e.preventDefault(); try {
     loadWord(parseWord($('word-input').value));
@@ -539,7 +630,12 @@ $('load-example').addEventListener('click', () => {
     }
     loadWord(input.value.split(',').map(x => Number(x)));
 });
-$('copy-word').addEventListener('click', () => void copy(currentFoldPath() ? actionLabel(currentFoldPath()) : formatWord(walk.word)));
+$('copy-word').addEventListener('click', () => {
+    const path = currentFoldPath(), walk = freePaths.active.walk;
+    const steps = walk.nodes.some(node => node.action === 'fold');
+    const word = steps ? walk.nodes.slice(1).map(node => `${node.action === 'fold' ? 'f' : 'c'}${SUB[node.via]}`).join(' ') : formatWord(walk.word);
+    void copy(path ? actionLabel(path) : word);
+});
 $('prompt-btn').addEventListener('click', () => void copy(PROJECT_PROMPT));
 $('export-btn').addEventListener('click', exportSVG);
 $('walk-log').addEventListener('click', e => {
@@ -554,13 +650,21 @@ $('walk-log').addEventListener('click', e => {
     camera.oy = h / 2 - camera.scale * node.point.v;
     update();
 });
-$('export-json').addEventListener('click', () => { download('alcove-path-A2.json', JSON.stringify((lp.active ? lp.exportData() : null) ?? (ram.active ? ram.exportData() : null) ?? explorer.exportData() ?? { rootSystem: 'A2_affine', convention: 'right action', nodes: walk.nodes, word: walk.word }, null, 2), 'application/json;charset=utf-8'); showToast('JSON exported.'); });
+$('export-json').addEventListener('click', () => { download('alcove-path-A2.json', JSON.stringify((lp.active ? lp.exportData() : null) ?? (ram.active ? ram.exportData() : null) ?? explorer.exportData() ?? freeDrawingExport(), null, 2), 'application/json;charset=utf-8'); showToast('JSON exported.'); });
+function freeDrawingExport() {
+    const active = freePaths.active;
+    return {
+        rootSystem: 'A2_affine', convention: 'right action', mode: 'free-drawing', activePathId: active.id,
+        nodes: active.walk.nodes, word: active.walk.crossingWord,
+        paths: freePaths.paths.map(({ id, color, walk }) => ({ id, color, nodes: walk.nodes, word: walk.crossingWord, wallTypes: walk.word }))
+    };
+}
 const dialog = $('help-dialog');
 $('help-btn').addEventListener('click', () => dialog.showModal());
 $('help-close').addEventListener('click', () => dialog.close());
 $('help-ok').addEventListener('click', () => dialog.close());
 document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)) {
+    if (e.code === 'Space' && !(e.target instanceof Element && e.target.closest('button,input,select,summary,dialog'))) {
         e.preventDefault();
         spaceHeld = true;
         svg.classList.add('pan-cursor');
@@ -571,17 +675,17 @@ document.addEventListener('keydown', e => {
         if (e.key.toLowerCase() === 'z') {
             e.preventDefault();
             if (e.shiftKey) {
-                if (walk.redo())
+                if (freePaths.active.walk.redo())
                     update();
             }
             else {
-                if (walk.undo())
+                if (freePaths.active.walk.undo())
                     update();
             }
         }
         if (e.key.toLowerCase() === 'y') {
             e.preventDefault();
-            if (walk.redo())
+            if (freePaths.active.walk.redo())
                 update();
         }
         return;
@@ -590,6 +694,8 @@ document.addEventListener('keydown', e => {
         return;
     if (e.key.toLowerCase() === 'd')
         setTool('draw');
+    if (e.key.toLowerCase() === 'f')
+        setTool('fold');
     if (e.key.toLowerCase() === 'h')
         setTool('pan');
 });
